@@ -85,7 +85,7 @@ class QuotationsScreen extends ConsumerWidget {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          '— ${quotation.bookTitle}',
+                          '— ${quotation.sourceTitle}',
                           style: TextStyle(
                             color: Colors.grey[600],
                             fontWeight: FontWeight.w500,

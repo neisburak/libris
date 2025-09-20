@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/book.dart';
+import '../models/quotation.dart';
 import '../providers/quotation_provider.dart';
+import '../providers/source_provider.dart';
 import 'add_quotation_screen.dart';
 
 class BookDetailScreen extends ConsumerWidget {
@@ -11,7 +13,26 @@ class BookDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final quotationsAsync = ref.watch(quotationsByBookProvider(book.id));
+    // Find the corresponding source for this book
+    final sourcesAsync = ref.watch(sourceProvider);
+    final bookSource = sourcesAsync.when(
+      data: (sources) {
+        try {
+          return sources.firstWhere(
+            (source) =>
+                source.title == book.title && source.author == book.author,
+          );
+        } catch (e) {
+          return null;
+        }
+      },
+      loading: () => null,
+      error: (_, __) => null,
+    );
+
+    final quotationsAsync = bookSource != null
+        ? ref.watch(quotationsBySourceProvider(bookSource.id))
+        : const AsyncValue.data(<Quotation>[]);
 
     return Scaffold(
       appBar: AppBar(
@@ -23,7 +44,7 @@ class BookDetailScreen extends ConsumerWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => AddQuotationScreen(book: book),
+                  builder: (context) => AddQuotationScreen(source: bookSource),
                 ),
               );
             },
@@ -63,14 +84,15 @@ class BookDetailScreen extends ConsumerWidget {
                             children: [
                               Text(
                                 book.title,
-                                style: Theme.of(context).textTheme.headlineSmall,
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.headlineSmall,
                               ),
                               const SizedBox(height: 4),
                               Text(
                                 book.author,
-                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  color: Colors.grey[600],
-                                ),
+                                style: Theme.of(context).textTheme.titleMedium
+                                    ?.copyWith(color: Colors.grey[600]),
                               ),
                               const SizedBox(height: 8),
                               Chip(
@@ -114,7 +136,9 @@ class BookDetailScreen extends ConsumerWidget {
                           const Text('Rating: '),
                           ...List.generate(5, (index) {
                             return Icon(
-                              index < book.rating! ? Icons.star : Icons.star_border,
+                              index < book.rating!
+                                  ? Icons.star
+                                  : Icons.star_border,
                               color: Colors.amber,
                               size: 20,
                             );
@@ -161,9 +185,7 @@ class BookDetailScreen extends ConsumerWidget {
                           const SizedBox(height: 8),
                           Text(
                             'Tap the + button to add your first quotation',
-                            style: TextStyle(
-                              color: Colors.grey[500],
-                            ),
+                            style: TextStyle(color: Colors.grey[500]),
                           ),
                         ],
                       ),

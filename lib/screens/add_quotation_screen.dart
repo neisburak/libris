@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
-import '../models/book.dart';
+import '../models/source.dart' as models;
 import '../models/quotation.dart';
-import '../providers/book_provider.dart';
+import '../providers/source_provider.dart';
 import '../providers/quotation_provider.dart';
 
 class AddQuotationScreen extends ConsumerStatefulWidget {
-  final Book? book;
+  final models.Source? source;
 
-  const AddQuotationScreen({super.key, this.book});
+  const AddQuotationScreen({super.key, this.source});
 
   @override
   ConsumerState<AddQuotationScreen> createState() => _AddQuotationScreenState();
@@ -19,22 +19,24 @@ class _AddQuotationScreenState extends ConsumerState<AddQuotationScreen> {
   final _formKey = GlobalKey<FormState>();
   final _contentController = TextEditingController();
   final _pageNumberController = TextEditingController();
+  final _timestampController = TextEditingController();
   final _hashtagsController = TextEditingController();
   final _noteController = TextEditingController();
 
-  Book? _selectedBook;
+  models.Source? _selectedSource;
   bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _selectedBook = widget.book;
+    _selectedSource = widget.source;
   }
 
   @override
   void dispose() {
     _contentController.dispose();
     _pageNumberController.dispose();
+    _timestampController.dispose();
     _hashtagsController.dispose();
     _noteController.dispose();
     super.dispose();
@@ -42,7 +44,7 @@ class _AddQuotationScreenState extends ConsumerState<AddQuotationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final booksAsync = ref.watch(booksProvider);
+    final sourcesAsync = ref.watch(sourceProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -66,10 +68,10 @@ class _AddQuotationScreenState extends ConsumerState<AddQuotationScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Book Selection
-              booksAsync.when(
-                data: (books) {
-                  if (books.isEmpty) {
+              // Source Selection
+              sourcesAsync.when(
+                data: (sources) {
+                  if (sources.isEmpty) {
                     return Card(
                       child: Padding(
                         padding: const EdgeInsets.all(16),
@@ -82,12 +84,12 @@ class _AddQuotationScreenState extends ConsumerState<AddQuotationScreen> {
                             ),
                             const SizedBox(height: 8),
                             const Text(
-                              'No books available',
+                              'No sources available',
                               style: TextStyle(fontWeight: FontWeight.bold),
                             ),
                             const SizedBox(height: 4),
                             const Text(
-                              'Add a book first to create quotations',
+                              'Add a source first to create quotations',
                               style: TextStyle(color: Colors.grey),
                             ),
                             const SizedBox(height: 16),
@@ -95,7 +97,7 @@ class _AddQuotationScreenState extends ConsumerState<AddQuotationScreen> {
                               onPressed: () {
                                 Navigator.pop(context);
                               },
-                              child: const Text('Go to Books'),
+                              child: const Text('Go to Sources'),
                             ),
                           ],
                         ),
@@ -103,26 +105,32 @@ class _AddQuotationScreenState extends ConsumerState<AddQuotationScreen> {
                     );
                   }
 
-                  return DropdownButtonFormField<Book>(
-                    value: _selectedBook,
+                  return DropdownButtonFormField<models.Source>(
+                    value: _selectedSource,
                     decoration: const InputDecoration(
-                      labelText: 'Select Book *',
+                      labelText: 'Select Source *',
                       border: OutlineInputBorder(),
                     ),
-                    items: books.map((book) {
-                      return DropdownMenuItem(
-                        value: book,
-                        child: Text(book.title),
+                    items: sources.map((source) {
+                      return DropdownMenuItem<models.Source>(
+                        value: source,
+                        child: Row(
+                          children: [
+                            Text(source.typeIcon),
+                            const SizedBox(width: 8),
+                            Expanded(child: Text(source.title)),
+                          ],
+                        ),
                       );
                     }).toList(),
                     onChanged: (value) {
                       setState(() {
-                        _selectedBook = value;
+                        _selectedSource = value;
                       });
                     },
                     validator: (value) {
                       if (value == null) {
-                        return 'Please select a book';
+                        return 'Please select a source';
                       }
                       return null;
                     },
@@ -133,7 +141,7 @@ class _AddQuotationScreenState extends ConsumerState<AddQuotationScreen> {
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Text(
-                      'Error loading books: ${error.toString()}',
+                      'Error loading sources: ${error.toString()}',
                       style: const TextStyle(color: Colors.red),
                     ),
                   ),
@@ -159,16 +167,26 @@ class _AddQuotationScreenState extends ConsumerState<AddQuotationScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Page Number
-              TextFormField(
-                controller: _pageNumberController,
-                decoration: const InputDecoration(
-                  labelText: 'Page Number',
-                  border: OutlineInputBorder(),
-                  hintText: 'Optional',
+              // Page Number or Timestamp
+              if (_selectedSource?.type == models.SourceType.book || _selectedSource?.type == models.SourceType.article)
+                TextFormField(
+                  controller: _pageNumberController,
+                  decoration: const InputDecoration(
+                    labelText: 'Page Number',
+                    border: OutlineInputBorder(),
+                    hintText: 'Optional',
+                  ),
+                  keyboardType: TextInputType.number,
+                )
+              else if (_selectedSource?.type == models.SourceType.video || _selectedSource?.type == models.SourceType.podcast)
+                TextFormField(
+                  controller: _timestampController,
+                  decoration: const InputDecoration(
+                    labelText: 'Timestamp',
+                    border: OutlineInputBorder(),
+                    hintText: 'e.g., 1:23:45 or 45 minutes',
+                  ),
                 ),
-                keyboardType: TextInputType.number,
-              ),
               const SizedBox(height: 16),
 
               // Hashtags
@@ -212,9 +230,9 @@ class _AddQuotationScreenState extends ConsumerState<AddQuotationScreen> {
       return;
     }
 
-    if (_selectedBook == null) {
+    if (_selectedSource == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a book')),
+        const SnackBar(content: Text('Please select a source')),
       );
       return;
     }
@@ -233,12 +251,17 @@ class _AddQuotationScreenState extends ConsumerState<AddQuotationScreen> {
 
       final quotation = Quotation(
         id: const Uuid().v4(),
-        bookId: _selectedBook!.id,
-        bookTitle: _selectedBook!.title,
+        sourceId: _selectedSource!.id,
+        sourceTitle: _selectedSource!.title,
+        sourceAuthor: _selectedSource!.author,
+        sourceType: _selectedSource!.type,
         content: _contentController.text.trim(),
         pageNumber: _pageNumberController.text.isEmpty 
             ? null 
             : int.tryParse(_pageNumberController.text),
+        timestamp: _timestampController.text.trim().isEmpty 
+            ? null 
+            : _timestampController.text.trim(),
         hashtags: hashtags,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),

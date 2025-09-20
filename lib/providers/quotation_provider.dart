@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/quotation.dart';
+import '../models/source.dart' as models;
 import '../services/firebase_service.dart';
 
 // Quotations stream provider
@@ -7,9 +8,14 @@ final quotationsProvider = StreamProvider<List<Quotation>>((ref) {
   return FirebaseService.getQuotations();
 });
 
-// Quotations by book provider
-final quotationsByBookProvider = StreamProvider.family<List<Quotation>, String>((ref, bookId) {
-  return FirebaseService.getQuotationsByBook(bookId);
+// Quotations by source provider
+final quotationsBySourceProvider = StreamProvider.family<List<Quotation>, String>((ref, sourceId) {
+  return FirebaseService.getQuotationsBySource(sourceId);
+});
+
+// Quotations by source type provider
+final quotationsBySourceTypeProvider = StreamProvider.family<List<Quotation>, models.SourceType>((ref, sourceType) {
+  return FirebaseService.getQuotationsBySourceType(sourceType);
 });
 
 // Search provider

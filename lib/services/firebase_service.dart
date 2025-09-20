@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/book.dart';
 import '../models/quotation.dart';
+import '../models/source.dart' as models;
 
 class FirebaseService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -17,6 +18,10 @@ class FirebaseService {
   // Quotations collection
   static CollectionReference get _quotationsCollection =>
       _firestore.collection('users').doc(currentUserId).collection('quotations');
+
+  // Sources collection
+  static CollectionReference get _sourcesCollection =>
+      _firestore.collection('users').doc(currentUserId).collection('sources');
 
   // Book operations
   static Future<String> addBook(Book book) async {
@@ -102,6 +107,26 @@ class FirebaseService {
             .toList());
   }
 
+  static Stream<List<Quotation>> getQuotationsBySource(String sourceId) {
+    return _quotationsCollection
+        .where('sourceId', isEqualTo: sourceId)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => Quotation.fromFirestore(doc))
+            .toList());
+  }
+
+  static Stream<List<Quotation>> getQuotationsBySourceType(models.SourceType sourceType) {
+    return _quotationsCollection
+        .where('sourceType', isEqualTo: sourceType.toString().split('.').last)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => Quotation.fromFirestore(doc))
+            .toList());
+  }
+
   static Stream<List<Quotation>> searchQuotations(String query) {
     return _quotationsCollection
         .orderBy('createdAt', descending: true)
@@ -146,5 +171,69 @@ class FirebaseService {
     }
     
     return allHashtags.toList()..sort();
+  }
+
+  // Source operations
+  static Future<String> addSource(models.Source source) async {
+    final docRef = await _sourcesCollection.add(source.toFirestore());
+    return docRef.id;
+  }
+
+  static Future<void> updateSource(models.Source source) async {
+    await _sourcesCollection.doc(source.id).update(source.toFirestore());
+  }
+
+  static Future<void> deleteSource(String sourceId) async {
+    // Delete all quotations for this source first
+    final quotations = await _quotationsCollection
+        .where('sourceId', isEqualTo: sourceId)
+        .get();
+    
+    for (var doc in quotations.docs) {
+      await doc.reference.delete();
+    }
+    
+    // Delete the source
+    await _sourcesCollection.doc(sourceId).delete();
+  }
+
+  static Stream<List<models.Source>> getSources() {
+    return _sourcesCollection
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => models.Source.fromFirestore(doc))
+            .toList());
+  }
+
+  static Stream<List<models.Source>> getSourcesByType(models.SourceType type) {
+    return _sourcesCollection
+        .where('type', isEqualTo: type.toString().split('.').last)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => models.Source.fromFirestore(doc))
+            .toList());
+  }
+
+  static Future<models.Source?> getSourceById(String sourceId) async {
+    final doc = await _sourcesCollection.doc(sourceId).get();
+    if (doc.exists) {
+      return models.Source.fromFirestore(doc);
+    }
+    return null;
+  }
+
+  static Stream<List<models.Source>> searchSources(String query) {
+    return _sourcesCollection
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => models.Source.fromFirestore(doc))
+            .where((source) => 
+                source.title.toLowerCase().contains(query.toLowerCase()) ||
+                source.author.toLowerCase().contains(query.toLowerCase()) ||
+                (source.description?.toLowerCase().contains(query.toLowerCase()) ?? false))
+            .toList());
   }
 }
