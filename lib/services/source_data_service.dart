@@ -1,24 +1,29 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:libris_app/utils/logger.dart';
 import '../models/source.dart' as models;
 
 class SourceDataService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  static final CollectionReference _sourcesCollection = _firestore.collection('sources');
+  static final CollectionReference _sourcesCollection = _firestore.collection(
+    'sources',
+  );
 
   static String get currentUserId => 'demo_user';
 
   /// Add a new source
   static Future<String> addSource(models.Source source) async {
     try {
-      final docRef = await _sourcesCollection.add(source.toFirestore()).timeout(
-        const Duration(seconds: 3),
-        onTimeout: () {
-          throw Exception('Firestore operation timed out after 3 seconds');
-        },
-      );
+      final docRef = await _sourcesCollection
+          .add(source.toFirestore())
+          .timeout(
+            const Duration(seconds: 3),
+            onTimeout: () {
+              throw Exception('Firestore operation timed out after 3 seconds');
+            },
+          );
       return docRef.id;
     } catch (e) {
-      print('Error adding source: $e');
+      Logger.log('Error adding source: $e');
       rethrow;
     }
   }
@@ -55,7 +60,7 @@ class SourceDataService {
           .map((doc) => models.Source.fromFirestore(doc))
           .toList();
     } catch (e) {
-      print('Error loading sources: $e');
+      Logger.log('Error loading sources: $e');
       return [];
     }
   }
@@ -73,7 +78,9 @@ class SourceDataService {
   }
 
   /// Get sources by type
-  static Future<List<models.Source>> getSourcesByType(models.SourceType type) async {
+  static Future<List<models.Source>> getSourcesByType(
+    models.SourceType type,
+  ) async {
     try {
       final snapshot = await _sourcesCollection
           .where('type', isEqualTo: type.name)
@@ -84,7 +91,7 @@ class SourceDataService {
           .map((doc) => models.Source.fromFirestore(doc))
           .toList();
     } catch (e) {
-      print('Error loading sources by type: $e');
+      Logger.log('Error loading sources by type: $e');
       return [];
     }
   }
@@ -101,7 +108,7 @@ class SourceDataService {
           .map((doc) => models.Source.fromFirestore(doc))
           .toList();
     } catch (e) {
-      print('Error loading sources by group: $e');
+      Logger.log('Error loading sources by group: $e');
       return [];
     }
   }
@@ -134,7 +141,7 @@ class SourceDataService {
           )
           .toList();
     } catch (e) {
-      print('Error searching sources: $e');
+      Logger.log('Error searching sources: $e');
       return [];
     }
   }

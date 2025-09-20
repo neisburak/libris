@@ -1,24 +1,29 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:libris_app/utils/logger.dart';
 import '../models/quote.dart';
 
 class QuoteDataService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  static final CollectionReference _quotesCollection = _firestore.collection('quotes');
+  static final CollectionReference _quotesCollection = _firestore.collection(
+    'quotes',
+  );
 
   static String get currentUserId => 'demo_user';
 
   /// Add a new quote
   static Future<String> addQuote(Quote quote) async {
     try {
-      final docRef = await _quotesCollection.add(quote.toFirestore()).timeout(
-        const Duration(seconds: 3),
-        onTimeout: () {
-          throw Exception('Firestore operation timed out after 3 seconds');
-        },
-      );
+      final docRef = await _quotesCollection
+          .add(quote.toFirestore())
+          .timeout(
+            const Duration(seconds: 3),
+            onTimeout: () {
+              throw Exception('Firestore operation timed out after 3 seconds');
+            },
+          );
       return docRef.id;
     } catch (e) {
-      print('Error adding quote: $e');
+      Logger.log('Error adding quote: $e');
       rethrow;
     }
   }
@@ -40,11 +45,9 @@ class QuoteDataService {
           .orderBy('createdAt', descending: true)
           .get()
           .timeout(const Duration(seconds: 3));
-      return snapshot.docs
-          .map((doc) => Quote.fromFirestore(doc))
-          .toList();
+      return snapshot.docs.map((doc) => Quote.fromFirestore(doc)).toList();
     } catch (e) {
-      print('Error loading quotes: $e');
+      Logger.log('Error loading quotes: $e');
       return [];
     }
   }
@@ -68,11 +71,9 @@ class QuoteDataService {
           .orderBy('createdAt', descending: true)
           .get()
           .timeout(const Duration(seconds: 3));
-      return snapshot.docs
-          .map((doc) => Quote.fromFirestore(doc))
-          .toList();
+      return snapshot.docs.map((doc) => Quote.fromFirestore(doc)).toList();
     } catch (e) {
-      print('Error loading quotes by source: $e');
+      Logger.log('Error loading quotes by source: $e');
       return [];
     }
   }
@@ -102,7 +103,7 @@ class QuoteDataService {
           .where((quote) => quote.matchesSearch(query))
           .toList();
     } catch (e) {
-      print('Error searching quotes: $e');
+      Logger.log('Error searching quotes: $e');
       return [];
     }
   }
@@ -115,11 +116,9 @@ class QuoteDataService {
           .orderBy('createdAt', descending: true)
           .get()
           .timeout(const Duration(seconds: 3));
-      return snapshot.docs
-          .map((doc) => Quote.fromFirestore(doc))
-          .toList();
+      return snapshot.docs.map((doc) => Quote.fromFirestore(doc)).toList();
     } catch (e) {
-      print('Error loading quotes by hashtag: $e');
+      Logger.log('Error loading quotes by hashtag: $e');
       return [];
     }
   }
@@ -149,7 +148,7 @@ class QuoteDataService {
 
       return allHashtags.toList()..sort();
     } catch (e) {
-      print('Error loading hashtags: $e');
+      Logger.log('Error loading hashtags: $e');
       return [];
     }
   }
