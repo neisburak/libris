@@ -39,13 +39,18 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
   Widget build(BuildContext context) {
     final groupsAsync = ref.watch(groupProvider);
     String groupName = '';
-    
+
     if (widget.groupId != null) {
       groupName = groupsAsync.when(
         data: (groups) {
           final group = groups.firstWhere(
             (g) => g.id == widget.groupId,
-            orElse: () => Group(id: '', name: 'Unknown Group', description: '', createdAt: DateTime.now()),
+            orElse: () => Group(
+              id: '',
+              name: 'Unknown Group',
+              description: '',
+              createdAt: DateTime.now(),
+            ),
           );
           return group.name;
         },
@@ -56,7 +61,9 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.groupId != null ? 'Sources in "$groupName"' : 'Sources'),
+        title: Text(
+          widget.groupId != null ? '$groupName Sources' : 'Sources',
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.search),
@@ -180,20 +187,24 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
 
   Widget _buildSourcesList(List<models.Source> sources) {
     if (sources.isEmpty) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.library_books_outlined, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             Text(
-              'No sources found',
-              style: TextStyle(fontSize: 18, color: Colors.grey),
+              widget.groupId != null
+                  ? 'No sources in this group'
+                  : 'No sources found',
+              style: const TextStyle(fontSize: 18, color: Colors.grey),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Text(
-              'Add your first source to get started',
-              style: TextStyle(color: Colors.grey),
+              widget.groupId != null
+                  ? 'Add sources to this group to get started'
+                  : 'Add your first source to get started',
+              style: const TextStyle(color: Colors.grey),
             ),
           ],
         ),
@@ -207,33 +218,113 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
         final source = sources[index];
         return Card(
           margin: const EdgeInsets.only(bottom: 12),
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           child: ListTile(
-            leading: CircleAvatar(child: Text(source.typeIcon)),
+            contentPadding: const EdgeInsets.all(16),
+            leading: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: _getTypeColor(source.type).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                source.typeIcon,
+                style: const TextStyle(fontSize: 20),
+              ),
+            ),
             title: Text(
               source.title,
               style: const TextStyle(fontWeight: FontWeight.w600),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('by ${source.source}'),
-                if (source.notes?.isNotEmpty == true)
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'by ${source.source}',
+                        style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                      ),
+                    ),
+                    if (source.groupId.isNotEmpty)
+                      Consumer(
+                        builder: (context, ref, child) {
+                          final groupsAsync = ref.watch(groupProvider);
+                          return groupsAsync.when(
+                            data: (groups) {
+                              final group = groups.firstWhere(
+                                (g) => g.id == source.groupId,
+                                orElse: () => Group(
+                                  id: '',
+                                  name: 'Unknown',
+                                  description: '',
+                                  createdAt: DateTime.now(),
+                                ),
+                              );
+                              return Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue[100],
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  group.name,
+                                  style: TextStyle(
+                                    color: Colors.blue[800],
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              );
+                            },
+                            loading: () => const SizedBox.shrink(),
+                            error: (_, __) => const SizedBox.shrink(),
+                          );
+                        },
+                      ),
+                  ],
+                ),
+                if (source.notes?.isNotEmpty == true) ...[
+                  const SizedBox(height: 4),
                   Text(
                     source.notes!,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: Colors.grey[600]),
+                    style: TextStyle(color: Colors.grey[600], fontSize: 13),
                   ),
-                Row(
+                ],
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
                   children: [
                     Chip(
-                      label: Text(source.statusDisplayName),
+                      label: Text(
+                        source.statusDisplayName,
+                        style: const TextStyle(fontSize: 12),
+                      ),
                       backgroundColor: _getStatusColor(source.status),
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
-                    const SizedBox(width: 8),
                     Chip(
-                      label: Text(source.typeDisplayName),
-                      backgroundColor: Colors.blue[100],
+                      label: Text(
+                        source.typeDisplayName,
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                      backgroundColor: _getTypeColor(
+                        source.type,
+                      ).withOpacity(0.2),
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
                   ],
                 ),
@@ -292,6 +383,23 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
         return Colors.orange[200]!;
       case models.SourceStatus.abandoned:
         return Colors.red[200]!;
+    }
+  }
+
+  Color _getTypeColor(models.SourceType type) {
+    switch (type) {
+      case models.SourceType.book:
+        return Colors.brown;
+      case models.SourceType.video:
+        return Colors.red;
+      case models.SourceType.article:
+        return Colors.blue;
+      case models.SourceType.podcast:
+        return Colors.purple;
+      case models.SourceType.website:
+        return Colors.green;
+      case models.SourceType.other:
+        return Colors.grey;
     }
   }
 

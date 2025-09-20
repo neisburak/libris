@@ -97,7 +97,7 @@ class _AddSourceScreenState extends ConsumerState<AddSourceScreen> {
                       items: [
                         const DropdownMenuItem<String>(
                           value: '',
-                          child: Text('No Group'),
+                          child: Text('Select Group (Optional)'),
                         ),
                         ...groups.map((group) => DropdownMenuItem<String>(
                           value: group.id,
@@ -110,9 +110,7 @@ class _AddSourceScreenState extends ConsumerState<AddSourceScreen> {
                         });
                       },
                       validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please select a group';
-                        }
+                        // Group selection is optional for sources
                         return null;
                       },
                     ),

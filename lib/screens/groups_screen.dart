@@ -28,6 +28,15 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen> {
               _showSearchDialog();
             },
           ),
+          IconButton(
+            icon: const Icon(Icons.add),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const AddGroupScreen()),
+              );
+            },
+          ),
         ],
       ),
       body: groupsAsync.isEmpty
@@ -83,7 +92,10 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen> {
                         color: Colors.grey.shade300,
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: Icon(Icons.folder, color: Colors.amber.shade700),
+                      child: Icon(
+                        Icons.folder,
+                        color: Colors.blueGrey.shade600,
+                      ),
                     ),
                     title: Text(
                       group.name,
@@ -104,15 +116,6 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen> {
                 );
               },
             ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const AddGroupScreen()),
-          );
-        },
-        child: const Icon(Icons.add),
-      ),
     );
   }
 

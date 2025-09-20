@@ -54,54 +54,56 @@ class _AddGroupScreenState extends ConsumerState<AddGroupScreen> {
             ),
         ],
       ),
-      body: Form(
-        key: _formKey,
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Group Name',
-                  hintText: 'Enter group name',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.folder),
+      body: SingleChildScrollView(
+        child: Form(
+          key: _formKey,
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TextFormField(
+                  controller: _nameController,
+                  decoration: InputDecoration(
+                    labelText: 'Group Name',
+                    hintText: 'Enter group name',
+                    border: const OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.folder),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Please enter a group name';
+                    }
+                    return null;
+                  },
+                  textCapitalization: TextCapitalization.words,
                 ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Please enter a group name';
-                  }
-                  return null;
-                },
-                textCapitalization: TextCapitalization.words,
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _descriptionController,
-                decoration: const InputDecoration(
-                  labelText: 'Description',
-                  hintText: 'Enter group description (optional)',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.description),
-                ),
-                maxLines: 3,
-                textCapitalization: TextCapitalization.sentences,
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: _isLoading ? null : _saveGroup,
-                child: Text(isEditing ? 'Update Group' : 'Create Group'),
-              ),
-              if (isEditing) ...[
                 const SizedBox(height: 16),
-                OutlinedButton(
-                  onPressed: _isLoading ? null : () => Navigator.pop(context),
-                  child: const Text('Cancel'),
+                TextFormField(
+                  controller: _descriptionController,
+                  decoration: const InputDecoration(
+                    labelText: 'Description',
+                    hintText: 'Enter group description (optional)',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.description),
+                  ),
+                  maxLines: 3,
+                  textCapitalization: TextCapitalization.sentences,
                 ),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: _isLoading ? null : _saveGroup,
+                  child: Text(isEditing ? 'Update Group' : 'Create Group'),
+                ),
+                if (isEditing) ...[
+                  const SizedBox(height: 16),
+                  OutlinedButton(
+                    onPressed: _isLoading ? null : () => Navigator.pop(context),
+                    child: const Text('Cancel'),
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),
@@ -141,7 +143,9 @@ class _AddGroupScreenState extends ConsumerState<AddGroupScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              widget.group != null ? 'Group updated successfully' : 'Group created successfully',
+              widget.group != null
+                  ? 'Group updated successfully'
+                  : 'Group created successfully',
             ),
           ),
         );
@@ -151,10 +155,7 @@ class _AddGroupScreenState extends ConsumerState<AddGroupScreen> {
       print('Stack trace: $stackTrace');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
         );
       }
     } finally {
