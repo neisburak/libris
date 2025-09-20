@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/group.dart';
 import '../providers/group_provider.dart';
 import 'add_group_screen.dart';
+import 'sources_screen.dart';
 
 class GroupsScreen extends ConsumerStatefulWidget {
   const GroupsScreen({super.key});
@@ -67,36 +68,46 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen> {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    trailing: PopupMenuButton(
-                      itemBuilder: (context) => [
-                        const PopupMenuItem(
-                          value: 'edit',
-                          child: Row(
-                            children: [
-                              Icon(Icons.edit),
-                              SizedBox(width: 8),
-                              Text('Edit'),
-                            ],
-                          ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.library_books),
+                          onPressed: () => _navigateToGroupSources(group),
+                          tooltip: 'View sources in this group',
                         ),
-                        const PopupMenuItem(
-                          value: 'delete',
-                          child: Row(
-                            children: [
-                              Icon(Icons.delete, color: Colors.red),
-                              SizedBox(width: 8),
-                              Text('Delete', style: TextStyle(color: Colors.red)),
-                            ],
-                          ),
+                        PopupMenuButton(
+                          itemBuilder: (context) => [
+                            const PopupMenuItem(
+                              value: 'edit',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.edit),
+                                  SizedBox(width: 8),
+                                  Text('Edit'),
+                                ],
+                              ),
+                            ),
+                            const PopupMenuItem(
+                              value: 'delete',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.delete, color: Colors.red),
+                                  SizedBox(width: 8),
+                                  Text('Delete', style: TextStyle(color: Colors.red)),
+                                ],
+                              ),
+                            ),
+                          ],
+                          onSelected: (value) {
+                            if (value == 'edit') {
+                              _editGroup(group);
+                            } else if (value == 'delete') {
+                              _deleteGroup(group);
+                            }
+                          },
                         ),
                       ],
-                      onSelected: (value) {
-                        if (value == 'edit') {
-                          _editGroup(group);
-                        } else if (value == 'delete') {
-                          _deleteGroup(group);
-                        }
-                      },
                     ),
                     onTap: () {
                       // Navigate to group details or sources in this group
@@ -185,9 +196,11 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen> {
   }
 
   void _navigateToGroupSources(Group group) {
-    // TODO: Navigate to sources screen filtered by this group
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Viewing sources in "${group.name}"')),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SourcesScreen(groupId: group.id),
+      ),
     );
   }
 }

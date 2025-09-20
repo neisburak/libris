@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/source.dart' as models;
+import '../models/group.dart';
 import '../providers/source_provider.dart';
 import '../providers/group_provider.dart';
 import 'add_source_screen.dart';
@@ -36,9 +37,26 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
 
   @override
   Widget build(BuildContext context) {
+    final groupsAsync = ref.watch(groupProvider);
+    String groupName = '';
+    
+    if (widget.groupId != null) {
+      groupName = groupsAsync.when(
+        data: (groups) {
+          final group = groups.firstWhere(
+            (g) => g.id == widget.groupId,
+            orElse: () => Group(id: '', name: 'Unknown Group', description: '', createdAt: DateTime.now()),
+          );
+          return group.name;
+        },
+        loading: () => 'Loading...',
+        error: (_, __) => 'Unknown Group',
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Sources'),
+        title: Text(widget.groupId != null ? 'Sources in "$groupName"' : 'Sources'),
         actions: [
           IconButton(
             icon: const Icon(Icons.search),
@@ -61,6 +79,7 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
             Tab(text: '🌐 Websites'),
             Tab(text: '📝 Other'),
           ],
+          indicatorSize: TabBarIndicatorSize.tab,
         ),
       ),
       body: TabBarView(
@@ -69,9 +88,15 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
           _buildSourcesList(_getFilteredSources()),
           _buildSourcesList(_getFilteredSourcesByType(models.SourceType.book)),
           _buildSourcesList(_getFilteredSourcesByType(models.SourceType.video)),
-          _buildSourcesList(_getFilteredSourcesByType(models.SourceType.article)),
-          _buildSourcesList(_getFilteredSourcesByType(models.SourceType.podcast)),
-          _buildSourcesList(_getFilteredSourcesByType(models.SourceType.website)),
+          _buildSourcesList(
+            _getFilteredSourcesByType(models.SourceType.article),
+          ),
+          _buildSourcesList(
+            _getFilteredSourcesByType(models.SourceType.podcast),
+          ),
+          _buildSourcesList(
+            _getFilteredSourcesByType(models.SourceType.website),
+          ),
           _buildSourcesList(_getFilteredSourcesByType(models.SourceType.other)),
         ],
       ),
@@ -94,12 +119,14 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
     return sourcesAsync.when(
       data: (sources) {
         var filteredSources = sources;
-        
+
         // Filter by group if selected
         if (_selectedGroupId.isNotEmpty) {
-          filteredSources = filteredSources.where((source) => source.groupId == _selectedGroupId).toList();
+          filteredSources = filteredSources
+              .where((source) => source.groupId == _selectedGroupId)
+              .toList();
         }
-        
+
         // Filter by search query
         final searchQuery = ref.watch(sourceSearchProvider);
         if (searchQuery.isNotEmpty) {
@@ -110,7 +137,7 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
                 (source.notes?.toLowerCase().contains(lowerQuery) ?? false);
           }).toList();
         }
-        
+
         return filteredSources;
       },
       loading: () => [],
@@ -122,13 +149,17 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
     final sourcesAsync = ref.watch(sourceProvider);
     return sourcesAsync.when(
       data: (sources) {
-        var filteredSources = sources.where((source) => source.type == type).toList();
-        
+        var filteredSources = sources
+            .where((source) => source.type == type)
+            .toList();
+
         // Filter by group if selected
         if (_selectedGroupId.isNotEmpty) {
-          filteredSources = filteredSources.where((source) => source.groupId == _selectedGroupId).toList();
+          filteredSources = filteredSources
+              .where((source) => source.groupId == _selectedGroupId)
+              .toList();
         }
-        
+
         // Filter by search query
         final searchQuery = ref.watch(sourceSearchProvider);
         if (searchQuery.isNotEmpty) {
@@ -139,7 +170,7 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
                 (source.notes?.toLowerCase().contains(lowerQuery) ?? false);
           }).toList();
         }
-        
+
         return filteredSources;
       },
       loading: () => [],
@@ -177,9 +208,7 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
         return Card(
           margin: const EdgeInsets.only(bottom: 12),
           child: ListTile(
-            leading: CircleAvatar(
-              child: Text(source.typeIcon),
-            ),
+            leading: CircleAvatar(child: Text(source.typeIcon)),
             title: Text(
               source.title,
               style: const TextStyle(fontWeight: FontWeight.w600),
@@ -301,7 +330,7 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
 
   void _showFilterDialog() {
     final groupsAsync = ref.watch(groupProvider);
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -320,16 +349,18 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
                   });
                 },
               ),
-              ...groups.map((group) => RadioListTile<String>(
-                title: Text(group.name),
-                value: group.id,
-                groupValue: _selectedGroupId,
-                onChanged: (value) {
-                  setState(() {
-                    _selectedGroupId = value!;
-                  });
-                },
-              )),
+              ...groups.map(
+                (group) => RadioListTile<String>(
+                  title: Text(group.name),
+                  value: group.id,
+                  groupValue: _selectedGroupId,
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedGroupId = value!;
+                    });
+                  },
+                ),
+              ),
             ],
           ),
           loading: () => const CircularProgressIndicator(),
@@ -356,9 +387,7 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
   void _editSource(models.Source source) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => AddSourceScreen(source: source),
-      ),
+      MaterialPageRoute(builder: (context) => AddSourceScreen(source: source)),
     );
   }
 
@@ -367,7 +396,9 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Source'),
-        content: Text('Are you sure you want to delete "${source.title}"? This will also delete all quotes from this source.'),
+        content: Text(
+          'Are you sure you want to delete "${source.title}"? This will also delete all quotes from this source.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),

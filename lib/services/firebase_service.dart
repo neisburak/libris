@@ -1,32 +1,87 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../models/group.dart';
 import '../models/quote.dart';
 import '../models/source.dart' as models;
 
 class FirebaseService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  static final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  // User management
-  static String? get currentUserId => _auth.currentUser?.uid;
+  // User management - using demo user for now
+  static String get currentUserId => 'demo_user';
 
-  // Groups collection
+  // Simple in-memory storage as fallback
+  static final List<Map<String, dynamic>> _localGroups = [];
+  static final List<Map<String, dynamic>> _localSources = [];
+  static final List<Map<String, dynamic>> _localQuotes = [];
+
+  // Test Firestore connectivity
+  static Future<void> testFirestoreConnection() async {
+    try {
+      print('Testing Firestore connection...');
+      await _firestore.collection('test').doc('connection').set({
+        'timestamp': Timestamp.now(),
+        'message': 'Connection test successful',
+      });
+      print('Firestore connection test successful');
+      
+      // Clean up test document
+      await _firestore.collection('test').doc('connection').delete();
+      print('Test document cleaned up');
+    } catch (e, stackTrace) {
+      print('Firestore connection test failed: $e');
+      print('Stack trace: $stackTrace');
+      rethrow;
+    }
+  }
+
+  // Groups collection - using a simpler path for testing
   static CollectionReference get _groupsCollection =>
-      _firestore.collection('users').doc(currentUserId).collection('groups');
+      _firestore.collection('groups');
 
-  // Sources collection
+  // Sources collection - using a simpler path for testing
   static CollectionReference get _sourcesCollection =>
-      _firestore.collection('users').doc(currentUserId).collection('sources');
+      _firestore.collection('sources');
 
-  // Quotes collection
+  // Quotes collection - using a simpler path for testing
   static CollectionReference get _quotesCollection =>
-      _firestore.collection('users').doc(currentUserId).collection('quotes');
+      _firestore.collection('quotes');
 
   // Group operations
   static Future<String> addGroup(Group group) async {
-    final docRef = await _groupsCollection.add(group.toFirestore());
-    return docRef.id;
+    print('FirebaseService.addGroup called with group: $group');
+    print('Group toFirestore: ${group.toFirestore()}');
+    print('Current user ID: $currentUserId');
+    print('Groups collection path: groups');
+    
+    try {
+      // Add timeout to prevent hanging
+      final docRef = await _groupsCollection.add(group.toFirestore()).timeout(
+        const Duration(seconds: 3),
+        onTimeout: () {
+          throw Exception('Firestore operation timed out after 3 seconds');
+        },
+      );
+      print('Group added successfully with ID: ${docRef.id}');
+      return docRef.id;
+    } catch (e, stackTrace) {
+      print('Error in FirebaseService.addGroup: $e');
+      print('Stack trace: $stackTrace');
+      print('Falling back to local storage...');
+      
+      // Fallback to local storage
+      return await _addGroupLocally(group);
+    }
+  }
+
+  static Future<String> _addGroupLocally(Group group) async {
+    try {
+      _localGroups.add(group.toFirestore());
+      print('Group saved locally with ID: ${group.id}');
+      return group.id;
+    } catch (e) {
+      print('Error saving group locally: $e');
+      rethrow;
+    }
   }
 
   static Future<void> updateGroup(Group group) async {
@@ -48,12 +103,37 @@ class FirebaseService {
   }
 
   static Future<List<Group>> getGroups() async {
-    final snapshot = await _groupsCollection
-        .orderBy('createdAt', descending: true)
-        .get();
-    return snapshot.docs
-        .map((doc) => Group.fromFirestore(doc))
-        .toList();
+    try {
+      final snapshot = await _groupsCollection
+          .orderBy('createdAt', descending: true)
+          .get()
+          .timeout(const Duration(seconds: 3));
+      return snapshot.docs
+          .map((doc) => Group.fromFirestore(doc))
+          .toList();
+    } catch (e) {
+      print('Error loading groups from Firestore: $e');
+      print('Falling back to local storage...');
+      return await _getGroupsLocally();
+    }
+  }
+
+  static Future<List<Group>> _getGroupsLocally() async {
+    try {
+      return _localGroups.map((groupData) {
+        return Group(
+          id: groupData['id'] ?? '',
+          name: groupData['name'] ?? '',
+          description: groupData['description'] ?? '',
+          createdAt: groupData['createdAt'] != null 
+              ? (groupData['createdAt'] as Timestamp).toDate()
+              : DateTime.now(),
+        );
+      }).toList();
+    } catch (e) {
+      print('Error loading groups from local storage: $e');
+      return [];
+    }
   }
 
   static Future<Group?> getGroupById(String groupId) async {

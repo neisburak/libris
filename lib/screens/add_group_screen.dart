@@ -111,6 +111,7 @@ class _AddGroupScreenState extends ConsumerState<AddGroupScreen> {
   Future<void> _saveGroup() async {
     if (!_formKey.currentState!.validate()) return;
 
+    print('Starting to save group...');
     setState(() {
       _isLoading = true;
     });
@@ -123,10 +124,16 @@ class _AddGroupScreenState extends ConsumerState<AddGroupScreen> {
         createdAt: widget.group?.createdAt ?? DateTime.now(),
       );
 
+      print('Created group object: $group');
+
       if (widget.group != null) {
+        print('Updating existing group...');
         await ref.read(groupProvider.notifier).updateGroup(group);
+        print('Group updated successfully');
       } else {
+        print('Adding new group...');
         await ref.read(groupProvider.notifier).addGroup(group);
+        print('Group added successfully');
       }
 
       if (mounted) {
@@ -139,7 +146,9 @@ class _AddGroupScreenState extends ConsumerState<AddGroupScreen> {
           ),
         );
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('Error saving group: $e');
+      print('Stack trace: $stackTrace');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
