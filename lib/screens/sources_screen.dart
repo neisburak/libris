@@ -209,7 +209,6 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
       itemCount: sources.length,
       itemBuilder: (context, index) {
         final source = sources[index];

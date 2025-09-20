@@ -125,7 +125,6 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen> {
                     ),
                   )
                 : ListView.builder(
-                    padding: const EdgeInsets.all(16),
                     itemCount: groupsAsync.length,
                     itemBuilder: (context, index) {
                       final group = groupsAsync[index];
@@ -152,6 +151,7 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen> {
                           ],
                         ),
                         child: ListTile(
+                          contentPadding: const EdgeInsets.all(16),
                           leading: Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
