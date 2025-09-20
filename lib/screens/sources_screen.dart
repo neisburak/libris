@@ -39,6 +39,7 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
   @override
   Widget build(BuildContext context) {
     final groupsAsync = ref.watch(groupProvider);
+    final sourcesAsync = ref.watch(sourceProvider);
     String groupName = '';
 
     if (widget.groupId != null) {
@@ -64,10 +65,6 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
       appBar: AppBar(
         title: Text(widget.groupId != null ? '$groupName Sources' : 'Sources'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: _showSearchDialog,
-          ),
           IconButton(
             icon: const Icon(Icons.filter_list),
             onPressed: _showFilterDialog,
@@ -103,16 +100,76 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
           indicatorSize: TabBarIndicatorSize.tab,
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
+      body: Column(
         children: [
-          _buildSourcesList(_getFilteredSources()),
-          _buildSourcesList(_getFilteredSourcesByType(SourceType.book)),
-          _buildSourcesList(_getFilteredSourcesByType(SourceType.video)),
-          _buildSourcesList(_getFilteredSourcesByType(SourceType.article)),
-          _buildSourcesList(_getFilteredSourcesByType(SourceType.podcast)),
-          _buildSourcesList(_getFilteredSourcesByType(SourceType.website)),
-          _buildSourcesList(_getFilteredSourcesByType(SourceType.other)),
+          // Search Input - Always visible when there are sources
+          if (sourcesAsync.when(
+            data: (sources) => sources.isNotEmpty,
+            loading: () => false,
+            error: (_, __) => false,
+          ))
+            Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  contentPadding: const EdgeInsets.all(8),
+                  hintText: 'Search sources...',
+                  prefixIcon: const Icon(Icons.search),
+                  suffixIcon: _searchController.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () {
+                            _searchController.clear();
+                            ref.read(sourceSearchProvider.notifier).state = '';
+                          },
+                        )
+                      : null,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: Colors.grey.shade300),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).primaryColor,
+                    ),
+                  ),
+                ),
+                onSubmitted: (value) {
+                  ref.read(sourceSearchProvider.notifier).state = value;
+                },
+                onChanged: (value) {
+                  ref.read(sourceSearchProvider.notifier).state = value;
+                  setState(() {}); // Rebuild to show/hide clear button
+                },
+              ),
+            ),
+          // TabBarView
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildSourcesList(_getFilteredSources()),
+                _buildSourcesList(_getFilteredSourcesByType(SourceType.book)),
+                _buildSourcesList(_getFilteredSourcesByType(SourceType.video)),
+                _buildSourcesList(_getFilteredSourcesByType(SourceType.article)),
+                _buildSourcesList(_getFilteredSourcesByType(SourceType.podcast)),
+                _buildSourcesList(_getFilteredSourcesByType(SourceType.website)),
+                _buildSourcesList(_getFilteredSourcesByType(SourceType.other)),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -191,16 +248,20 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
             Icon(Icons.library_books_outlined, size: 64, color: Colors.grey),
             const SizedBox(height: 16),
             Text(
-              widget.groupId != null
-                  ? 'No sources in this group'
-                  : 'No sources found',
+              ref.watch(sourceSearchProvider).isNotEmpty
+                  ? 'No sources found'
+                  : widget.groupId != null
+                      ? 'No sources in this group'
+                      : 'No sources found',
               style: const TextStyle(fontSize: 18, color: Colors.grey),
             ),
             const SizedBox(height: 8),
             Text(
-              widget.groupId != null
-                  ? 'Add sources to this group to get started'
-                  : 'Add your first source to get started',
+              ref.watch(sourceSearchProvider).isNotEmpty
+                  ? 'Try a different search term'
+                  : widget.groupId != null
+                      ? 'Add sources to this group to get started'
+                      : 'Add your first source to get started',
               style: const TextStyle(color: Colors.grey),
             ),
           ],
@@ -343,38 +404,6 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
     }
   }
 
-  void _showSearchDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Search Sources'),
-        content: TextField(
-          controller: _searchController,
-          decoration: const InputDecoration(
-            hintText: 'Enter search term...',
-            prefixIcon: Icon(Icons.search),
-          ),
-          onChanged: (value) {
-            ref.read(sourceSearchProvider.notifier).state = value;
-          },
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              _searchController.clear();
-              ref.read(sourceSearchProvider.notifier).state = '';
-              Navigator.pop(context);
-            },
-            child: const Text('Clear'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
 
   void _showFilterDialog() {
     final groupsAsync = ref.watch(groupProvider);
