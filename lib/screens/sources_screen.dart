@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/source.dart' as models;
 import '../providers/source_provider.dart';
+import '../providers/group_provider.dart';
 import 'add_source_screen.dart';
 
 class SourcesScreen extends ConsumerStatefulWidget {
-  const SourcesScreen({super.key});
+  final String? groupId; // Optional filter by group
+
+  const SourcesScreen({super.key, this.groupId});
 
   @override
   ConsumerState<SourcesScreen> createState() => _SourcesScreenState();
@@ -15,11 +18,13 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
+  String _selectedGroupId = '';
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 6, vsync: this);
+    _tabController = TabController(length: 7, vsync: this);
+    _selectedGroupId = widget.groupId ?? '';
   }
 
   @override
@@ -34,46 +39,111 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
     return Scaffold(
       appBar: AppBar(
         title: const Text('Sources'),
-        bottom: TabBar(
-          controller: _tabController,
-          isScrollable: true,
-          tabs: const [
-            Tab(text: 'All', icon: Icon(Icons.library_books)),
-            Tab(text: '📖 Books', icon: Icon(Icons.book)),
-            Tab(text: '🎥 Videos', icon: Icon(Icons.video_library)),
-            Tab(text: '📄 Articles', icon: Icon(Icons.article)),
-            Tab(text: '🎧 Podcasts', icon: Icon(Icons.headphones)),
-            Tab(text: '🌐 Websites', icon: Icon(Icons.web)),
-          ],
-        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.search),
             onPressed: _showSearchDialog,
           ),
           IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const AddSourceScreen(),
-                ),
-              );
-            },
+            icon: const Icon(Icons.filter_list),
+            onPressed: _showFilterDialog,
           ),
         ],
+        bottom: TabBar(
+          controller: _tabController,
+          isScrollable: true,
+          tabs: const [
+            Tab(text: 'All'),
+            Tab(text: '📖 Books'),
+            Tab(text: '🎥 Videos'),
+            Tab(text: '📄 Articles'),
+            Tab(text: '🎧 Podcasts'),
+            Tab(text: '🌐 Websites'),
+            Tab(text: '📝 Other'),
+          ],
+        ),
       ),
       body: TabBarView(
         controller: _tabController,
         children: [
-          _buildSourcesList(ref.watch(filteredSourcesProvider)),
-          _buildSourcesList(ref.watch(bookSourcesProvider)),
-          _buildSourcesList(ref.watch(videoSourcesProvider)),
-          _buildSourcesList(ref.watch(articleSourcesProvider)),
-          _buildSourcesList(ref.watch(podcastSourcesProvider)),
-          _buildSourcesList(ref.watch(filteredSourcesProvider).where((s) => s.type == models.SourceType.website).toList()),
+          _buildSourcesList(_getFilteredSources()),
+          _buildSourcesList(_getFilteredSourcesByType(models.SourceType.book)),
+          _buildSourcesList(_getFilteredSourcesByType(models.SourceType.video)),
+          _buildSourcesList(_getFilteredSourcesByType(models.SourceType.article)),
+          _buildSourcesList(_getFilteredSourcesByType(models.SourceType.podcast)),
+          _buildSourcesList(_getFilteredSourcesByType(models.SourceType.website)),
+          _buildSourcesList(_getFilteredSourcesByType(models.SourceType.other)),
         ],
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => AddSourceScreen(groupId: _selectedGroupId),
+            ),
+          );
+        },
+        child: const Icon(Icons.add),
+      ),
+    );
+  }
+
+  List<models.Source> _getFilteredSources() {
+    final sourcesAsync = ref.watch(sourceProvider);
+    return sourcesAsync.when(
+      data: (sources) {
+        var filteredSources = sources;
+        
+        // Filter by group if selected
+        if (_selectedGroupId.isNotEmpty) {
+          filteredSources = filteredSources.where((source) => source.groupId == _selectedGroupId).toList();
+        }
+        
+        // Filter by search query
+        final searchQuery = ref.watch(sourceSearchProvider);
+        if (searchQuery.isNotEmpty) {
+          filteredSources = filteredSources.where((source) {
+            final lowerQuery = searchQuery.toLowerCase();
+            return source.title.toLowerCase().contains(lowerQuery) ||
+                source.source.toLowerCase().contains(lowerQuery) ||
+                (source.notes?.toLowerCase().contains(lowerQuery) ?? false);
+          }).toList();
+        }
+        
+        return filteredSources;
+      },
+      loading: () => [],
+      error: (_, __) => [],
+    );
+  }
+
+  List<models.Source> _getFilteredSourcesByType(models.SourceType type) {
+    final sourcesAsync = ref.watch(sourceProvider);
+    return sourcesAsync.when(
+      data: (sources) {
+        var filteredSources = sources.where((source) => source.type == type).toList();
+        
+        // Filter by group if selected
+        if (_selectedGroupId.isNotEmpty) {
+          filteredSources = filteredSources.where((source) => source.groupId == _selectedGroupId).toList();
+        }
+        
+        // Filter by search query
+        final searchQuery = ref.watch(sourceSearchProvider);
+        if (searchQuery.isNotEmpty) {
+          filteredSources = filteredSources.where((source) {
+            final lowerQuery = searchQuery.toLowerCase();
+            return source.title.toLowerCase().contains(lowerQuery) ||
+                source.source.toLowerCase().contains(lowerQuery) ||
+                (source.notes?.toLowerCase().contains(lowerQuery) ?? false);
+          }).toList();
+        }
+        
+        return filteredSources;
+      },
+      loading: () => [],
+      error: (_, __) => [],
     );
   }
 
@@ -83,7 +153,7 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.library_books, size: 64, color: Colors.grey),
+            Icon(Icons.library_books_outlined, size: 64, color: Colors.grey),
             SizedBox(height: 16),
             Text(
               'No sources found',
@@ -91,7 +161,7 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
             ),
             SizedBox(height: 8),
             Text(
-              'Tap the + button to add a source',
+              'Add your first source to get started',
               style: TextStyle(color: Colors.grey),
             ),
           ],
@@ -100,47 +170,42 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.all(16),
       itemCount: sources.length,
       itemBuilder: (context, index) {
         final source = sources[index];
         return Card(
-          margin: const EdgeInsets.symmetric(vertical: 4),
+          margin: const EdgeInsets.only(bottom: 12),
           child: ListTile(
             leading: CircleAvatar(
               child: Text(source.typeIcon),
             ),
-            title: Text(source.title),
+            title: Text(
+              source.title,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('by ${source.author}'),
-                if (source.description != null)
+                Text('by ${source.source}'),
+                if (source.notes?.isNotEmpty == true)
                   Text(
-                    source.description!,
+                    source.notes!,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 12),
+                    style: TextStyle(color: Colors.grey[600]),
                   ),
                 Row(
                   children: [
                     Chip(
-                      label: Text(source.typeDisplayName),
-                      backgroundColor: _getTypeColor(source.type).withOpacity(0.2),
+                      label: Text(source.statusDisplayName),
+                      backgroundColor: _getStatusColor(source.status),
                     ),
-                    if (source.rating != null) ...[
-                      const SizedBox(width: 8),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: List.generate(5, (i) {
-                          return Icon(
-                            i < source.rating!.round() ? Icons.star : Icons.star_border,
-                            size: 16,
-                            color: Colors.amber,
-                          );
-                        }),
-                      ),
-                    ],
+                    const SizedBox(width: 8),
+                    Chip(
+                      label: Text(source.typeDisplayName),
+                      backgroundColor: Colors.blue[100],
+                    ),
                   ],
                 ),
               ],
@@ -149,18 +214,22 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
               itemBuilder: (context) => [
                 const PopupMenuItem(
                   value: 'edit',
-                  child: ListTile(
-                    leading: Icon(Icons.edit),
-                    title: Text('Edit'),
-                    contentPadding: EdgeInsets.zero,
+                  child: Row(
+                    children: [
+                      Icon(Icons.edit),
+                      SizedBox(width: 8),
+                      Text('Edit'),
+                    ],
                   ),
                 ),
                 const PopupMenuItem(
                   value: 'delete',
-                  child: ListTile(
-                    leading: Icon(Icons.delete, color: Colors.red),
-                    title: Text('Delete'),
-                    contentPadding: EdgeInsets.zero,
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete, color: Colors.red),
+                      SizedBox(width: 8),
+                      Text('Delete', style: TextStyle(color: Colors.red)),
+                    ],
                   ),
                 ),
               ],
@@ -173,12 +242,28 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
               },
             ),
             onTap: () {
-              // Navigate to source details or quotations
+              // Navigate to source details or quotes
+              _navigateToSourceDetails(source);
             },
           ),
         );
       },
     );
+  }
+
+  Color _getStatusColor(models.SourceStatus status) {
+    switch (status) {
+      case models.SourceStatus.notStarted:
+        return Colors.grey[300]!;
+      case models.SourceStatus.inProgress:
+        return Colors.blue[200]!;
+      case models.SourceStatus.completed:
+        return Colors.green[200]!;
+      case models.SourceStatus.paused:
+        return Colors.orange[200]!;
+      case models.SourceStatus.abandoned:
+        return Colors.red[200]!;
+    }
   }
 
   void _showSearchDialog() {
@@ -189,8 +274,8 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
         content: TextField(
           controller: _searchController,
           decoration: const InputDecoration(
-            hintText: 'Search by title, author, or description...',
-            border: OutlineInputBorder(),
+            hintText: 'Enter search term...',
+            prefixIcon: Icon(Icons.search),
           ),
           onChanged: (value) {
             ref.read(sourceSearchProvider.notifier).state = value;
@@ -201,12 +286,12 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
             onPressed: () {
               _searchController.clear();
               ref.read(sourceSearchProvider.notifier).state = '';
-              Navigator.of(context).pop();
+              Navigator.pop(context);
             },
             child: const Text('Clear'),
           ),
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => Navigator.pop(context),
             child: const Text('Close'),
           ),
         ],
@@ -214,11 +299,66 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
     );
   }
 
+  void _showFilterDialog() {
+    final groupsAsync = ref.watch(groupProvider);
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Filter by Group'),
+        content: groupsAsync.when(
+          data: (groups) => Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              RadioListTile<String>(
+                title: const Text('All Groups'),
+                value: '',
+                groupValue: _selectedGroupId,
+                onChanged: (value) {
+                  setState(() {
+                    _selectedGroupId = value!;
+                  });
+                },
+              ),
+              ...groups.map((group) => RadioListTile<String>(
+                title: Text(group.name),
+                value: group.id,
+                groupValue: _selectedGroupId,
+                onChanged: (value) {
+                  setState(() {
+                    _selectedGroupId = value!;
+                  });
+                },
+              )),
+            ],
+          ),
+          loading: () => const CircularProgressIndicator(),
+          error: (_, __) => const Text('Error loading groups'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              setState(() {
+                _selectedGroupId = '';
+              });
+            },
+            child: const Text('Clear'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Apply'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _editSource(models.Source source) {
-    // Navigate to edit source screen
-    // For now, just show a snackbar
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Edit functionality coming soon!')),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AddSourceScreen(source: source),
+      ),
     );
   }
 
@@ -227,22 +367,18 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Source'),
-        content: Text('Are you sure you want to delete "${source.title}"?'),
+        content: Text('Are you sure you want to delete "${source.title}"? This will also delete all quotes from this source.'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => Navigator.pop(context),
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () async {
-              await ref.read(sourceProvider.notifier).deleteSource(source.id);
-              if (mounted) {
-                Navigator.of(context).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Source deleted successfully!')),
-                );
-              }
+            onPressed: () {
+              ref.read(sourceProvider.notifier).deleteSource(source.id);
+              Navigator.pop(context);
             },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Delete'),
           ),
         ],
@@ -250,20 +386,10 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
     );
   }
 
-  Color _getTypeColor(models.SourceType type) {
-    switch (type) {
-      case models.SourceType.book:
-        return Colors.blue;
-      case models.SourceType.video:
-        return Colors.red;
-      case models.SourceType.article:
-        return Colors.green;
-      case models.SourceType.podcast:
-        return Colors.purple;
-      case models.SourceType.website:
-        return Colors.orange;
-      case models.SourceType.other:
-        return Colors.grey;
-    }
+  void _navigateToSourceDetails(models.Source source) {
+    // TODO: Navigate to source details or quotes screen
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Viewing details for "${source.title}"')),
+    );
   }
 }

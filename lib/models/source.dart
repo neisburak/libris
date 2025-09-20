@@ -2,105 +2,102 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 enum SourceType { book, video, article, podcast, website, other }
 
+enum SourceStatus { notStarted, inProgress, completed, paused, abandoned }
+
 class Source {
   final String id;
-  final String title;
-  final String author;
+  final String groupId;
   final SourceType type;
-  final String? description;
-  final String? coverUrl;
+  final String title;
+  final String source; // Author/Creator
   final String? url;
-  final int? totalPages;
-  final int? currentPage;
-  final String? duration; // For videos, podcasts, etc.
-  final double? rating;
+  final String? notes;
+  final SourceStatus status;
+  final DateTime? startDate;
+  final DateTime? finishDate;
   final DateTime createdAt;
-  final DateTime updatedAt;
 
   Source({
     required this.id,
-    required this.title,
-    required this.author,
+    required this.groupId,
     required this.type,
-    this.description,
-    this.coverUrl,
+    required this.title,
+    required this.source,
     this.url,
-    this.totalPages,
-    this.currentPage,
-    this.duration,
-    this.rating,
+    this.notes,
+    required this.status,
+    this.startDate,
+    this.finishDate,
     required this.createdAt,
-    required this.updatedAt,
   });
 
   factory Source.fromFirestore(DocumentSnapshot doc) {
     Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
     return Source(
       id: doc.id,
-      title: data['title'] ?? '',
-      author: data['author'] ?? '',
+      groupId: data['groupId'] ?? '',
       type: SourceType.values.firstWhere(
         (e) => e.toString() == 'SourceType.${data['type']}',
         orElse: () => SourceType.other,
       ),
-      description: data['description'],
-      coverUrl: data['coverUrl'],
+      title: data['title'] ?? '',
+      source: data['source'] ?? '',
       url: data['url'],
-      totalPages: data['totalPages'],
-      currentPage: data['currentPage'],
-      duration: data['duration'],
-      rating: data['rating']?.toDouble(),
+      notes: data['notes'],
+      status: SourceStatus.values.firstWhere(
+        (e) => e.toString() == 'SourceStatus.${data['status']}',
+        orElse: () => SourceStatus.notStarted,
+      ),
+      startDate: data['startDate'] != null 
+          ? (data['startDate'] as Timestamp).toDate() 
+          : null,
+      finishDate: data['finishDate'] != null 
+          ? (data['finishDate'] as Timestamp).toDate() 
+          : null,
       createdAt: (data['createdAt'] as Timestamp).toDate(),
-      updatedAt: (data['updatedAt'] as Timestamp).toDate(),
     );
   }
 
   Map<String, dynamic> toFirestore() {
     return {
-      'title': title,
-      'author': author,
+      'groupId': groupId,
       'type': type.toString().split('.').last,
-      'description': description,
-      'coverUrl': coverUrl,
+      'title': title,
+      'source': source,
       'url': url,
-      'totalPages': totalPages,
-      'currentPage': currentPage,
-      'duration': duration,
-      'rating': rating,
+      'notes': notes,
+      'status': status.toString().split('.').last,
+      'startDate': startDate != null ? Timestamp.fromDate(startDate!) : null,
+      'finishDate': finishDate != null ? Timestamp.fromDate(finishDate!) : null,
       'createdAt': Timestamp.fromDate(createdAt),
-      'updatedAt': Timestamp.fromDate(updatedAt),
     };
   }
 
   Source copyWith({
     String? id,
-    String? title,
-    String? author,
+    String? groupId,
     SourceType? type,
-    String? description,
-    String? coverUrl,
+    String? title,
+    String? source,
     String? url,
-    int? totalPages,
-    int? currentPage,
-    String? duration,
-    double? rating,
+    String? notes,
+    SourceStatus? status,
+    DateTime? startDate,
+    DateTime? finishDate,
     DateTime? createdAt,
-    DateTime? updatedAt,
   }) {
     return Source(
       id: id ?? this.id,
-      title: title ?? this.title,
-      author: author ?? this.author,
+      groupId: groupId ?? this.groupId,
       type: type ?? this.type,
-      description: description ?? this.description,
-      coverUrl: coverUrl ?? this.coverUrl,
+      title: title ?? this.title,
+      source: source ?? this.source,
       url: url ?? this.url,
-      totalPages: totalPages ?? this.totalPages,
-      currentPage: currentPage ?? this.currentPage,
-      duration: duration ?? this.duration,
-      rating: rating ?? this.rating,
+      notes: notes ?? this.notes,
+      status: status ?? this.status,
+      startDate: startDate ?? this.startDate,
+      finishDate: finishDate ?? this.finishDate,
       createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
     );
   }
 
@@ -138,14 +135,23 @@ class Source {
     }
   }
 
-  double get progressPercentage {
-    if (totalPages == null || currentPage == null || totalPages == 0) {
-      return 0.0;
+  String get statusDisplayName {
+    switch (status) {
+      case SourceStatus.notStarted:
+        return 'Not Started';
+      case SourceStatus.inProgress:
+        return 'In Progress';
+      case SourceStatus.completed:
+        return 'Completed';
+      case SourceStatus.paused:
+        return 'Paused';
+      case SourceStatus.abandoned:
+        return 'Abandoned';
     }
-    return (currentPage! / totalPages! * 100).clamp(0.0, 100.0);
   }
 
-  bool get hasProgress => totalPages != null && currentPage != null;
   bool get hasUrl => url != null && url!.isNotEmpty;
-  bool get hasDuration => duration != null && duration!.isNotEmpty;
+  bool get hasNotes => notes != null && notes!.isNotEmpty;
+  bool get isCompleted => status == SourceStatus.completed;
+  bool get isInProgress => status == SourceStatus.inProgress;
 }

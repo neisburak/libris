@@ -55,13 +55,29 @@ class SourceNotifier extends StateNotifier<AsyncValue<List<models.Source>>> {
     );
   }
 
+  List<models.Source> getSourcesByGroup(String groupId) {
+    return state.when(
+      data: (sources) => sources.where((source) => source.groupId == groupId).toList(),
+      loading: () => [],
+      error: (_, __) => [],
+    );
+  }
+
+  List<models.Source> getSourcesByStatus(models.SourceStatus status) {
+    return state.when(
+      data: (sources) => sources.where((source) => source.status == status).toList(),
+      loading: () => [],
+      error: (_, __) => [],
+    );
+  }
+
   List<models.Source> searchSources(String query) {
     return state.when(
       data: (sources) => sources.where((source) {
         final lowerQuery = query.toLowerCase();
         return source.title.toLowerCase().contains(lowerQuery) ||
-            source.author.toLowerCase().contains(lowerQuery) ||
-            (source.description?.toLowerCase().contains(lowerQuery) ?? false);
+            source.source.toLowerCase().contains(lowerQuery) ||
+            (source.notes?.toLowerCase().contains(lowerQuery) ?? false);
       }).toList(),
       loading: () => [],
       error: (_, __) => [],
@@ -124,8 +140,8 @@ final filteredSourcesProvider = Provider<List<models.Source>>((ref) {
       final lowerQuery = searchQuery.toLowerCase();
       return sources.where((source) {
         return source.title.toLowerCase().contains(lowerQuery) ||
-            source.author.toLowerCase().contains(lowerQuery) ||
-            (source.description?.toLowerCase().contains(lowerQuery) ?? false);
+            source.source.toLowerCase().contains(lowerQuery) ||
+            (source.notes?.toLowerCase().contains(lowerQuery) ?? false);
       }).toList();
     },
     loading: () => [],

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../models/book.dart';
-import '../providers/book_provider.dart';
+import '../models/quote.dart';
+import '../models/source.dart' as models;
 import '../providers/quotation_provider.dart';
-import 'book_detail_screen.dart';
+import '../providers/source_provider.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
@@ -16,6 +16,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final _searchController = TextEditingController();
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -38,8 +39,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
         bottom: TabBar(
           controller: _tabController,
           tabs: const [
-            Tab(text: 'Books'),
-            Tab(text: 'Quotations'),
+            Tab(text: 'Sources'),
+            Tab(text: 'Quotes'),
             Tab(text: 'Hashtags'),
           ],
         ),
@@ -48,20 +49,20 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
         children: [
           // Search Bar
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(16.0),
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                hintText: 'Search books, quotations, or hashtags...',
+                hintText: 'Search sources, quotes, or hashtags...',
                 prefixIcon: const Icon(Icons.search),
-                suffixIcon: _searchController.text.isNotEmpty
+                suffixIcon: _searchQuery.isNotEmpty
                     ? IconButton(
                         icon: const Icon(Icons.clear),
                         onPressed: () {
                           _searchController.clear();
-                          ref.read(bookSearchProvider.notifier).state = '';
-                          ref.read(quotationSearchProvider.notifier).state = '';
-                          ref.read(hashtagSearchProvider.notifier).state = '';
+                          setState(() {
+                            _searchQuery = '';
+                          });
                         },
                       )
                     : null,
@@ -70,26 +71,21 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
                 ),
               ),
               onChanged: (value) {
-                setState(() {});
-                if (_tabController.index == 0) {
-                  ref.read(bookSearchProvider.notifier).state = value;
-                } else if (_tabController.index == 1) {
-                  ref.read(quotationSearchProvider.notifier).state = value;
-                } else {
-                  ref.read(hashtagSearchProvider.notifier).state = value;
-                }
+                setState(() {
+                  _searchQuery = value;
+                });
               },
             ),
           ),
-
+          
           // Search Results
           Expanded(
             child: TabBarView(
               controller: _tabController,
               children: [
-                _buildBookSearch(),
-                _buildQuotationSearch(),
-                _buildHashtagSearch(),
+                _buildSourcesTab(),
+                _buildQuotesTab(),
+                _buildHashtagsTab(),
               ],
             ),
           ),
@@ -98,66 +94,64 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
     );
   }
 
-  Widget _buildBookSearch() {
-    final searchQuery = ref.watch(bookSearchProvider);
-    final booksAsync = ref.watch(searchedBooksProvider);
+  Widget _buildSourcesTab() {
+    if (_searchQuery.isEmpty) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.search, size: 64, color: Colors.grey),
+            SizedBox(height: 16),
+            Text(
+              'Search Sources',
+              style: TextStyle(fontSize: 18, color: Colors.grey),
+            ),
+            SizedBox(height: 8),
+            Text(
+              'Enter a search term to find sources',
+              style: TextStyle(color: Colors.grey),
+            ),
+          ],
+        ),
+      );
+    }
 
-    return booksAsync.when(
-      data: (books) {
-        if (searchQuery.isEmpty) {
-          return const Center(
+    return FutureBuilder<List<models.Source>>(
+      future: Future.value(ref.read(sourceProvider.notifier).searchSources(_searchQuery)),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (snapshot.hasError) {
+          return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  Icons.search,
-                  size: 64,
-                  color: Colors.grey,
-                ),
-                SizedBox(height: 16),
-                Text(
-                  'Search for books',
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: Colors.grey,
-                  ),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'Enter a book title or author name',
-                  style: TextStyle(
-                    color: Colors.grey,
-                  ),
-                ),
+                const Icon(Icons.error, size: 64, color: Colors.red),
+                const SizedBox(height: 16),
+                Text('Error: ${snapshot.error}'),
               ],
             ),
           );
         }
 
-        if (books.isEmpty) {
+        final sources = snapshot.data ?? [];
+        if (sources.isEmpty) {
           return const Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  Icons.search_off,
-                  size: 64,
-                  color: Colors.grey,
-                ),
+                Icon(Icons.search_off, size: 64, color: Colors.grey),
                 SizedBox(height: 16),
                 Text(
-                  'No books found',
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: Colors.grey,
-                  ),
+                  'No sources found',
+                  style: TextStyle(fontSize: 18, color: Colors.grey),
                 ),
                 SizedBox(height: 8),
                 Text(
                   'Try a different search term',
-                  style: TextStyle(
-                    color: Colors.grey,
-                  ),
+                  style: TextStyle(color: Colors.grey),
                 ),
               ],
             ),
@@ -166,37 +160,42 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
 
         return ListView.builder(
           padding: const EdgeInsets.all(16),
-          itemCount: books.length,
+          itemCount: sources.length,
           itemBuilder: (context, index) {
-            final book = books[index];
+            final source = sources[index];
             return Card(
               margin: const EdgeInsets.only(bottom: 12),
               child: ListTile(
                 leading: CircleAvatar(
-                  backgroundColor: _getStatusColor(book.status),
-                  child: Text(
-                    book.title.isNotEmpty ? book.title[0].toUpperCase() : '?',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  child: Text(source.typeIcon),
                 ),
                 title: Text(
-                  book.title,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  source.title,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
-                subtitle: Text(book.author),
-                trailing: Chip(
-                  label: Text(_getStatusDisplayName(book.status)),
-                  backgroundColor: _getStatusColor(book.status),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('by ${source.source}'),
+                    Row(
+                      children: [
+                        Chip(
+                          label: Text(source.statusDisplayName),
+                          backgroundColor: _getStatusColor(source.status),
+                        ),
+                        const SizedBox(width: 8),
+                        Chip(
+                          label: Text(source.typeDisplayName),
+                          backgroundColor: Colors.blue[100],
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
                 onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => BookDetailScreen(book: book),
-                    ),
+                  // TODO: Navigate to source details
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Viewing "${source.title}"')),
                   );
                 },
               ),
@@ -204,76 +203,68 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
           },
         );
       },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stack) => Center(
-        child: Text(
-          'Error: ${error.toString()}',
-          style: const TextStyle(color: Colors.red),
-        ),
-      ),
     );
   }
 
-  Widget _buildQuotationSearch() {
-    final searchQuery = ref.watch(quotationSearchProvider);
-    final quotationsAsync = ref.watch(searchedQuotationsProvider);
+  Widget _buildQuotesTab() {
+    if (_searchQuery.isEmpty) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.search, size: 64, color: Colors.grey),
+            SizedBox(height: 16),
+            Text(
+              'Search Quotes',
+              style: TextStyle(fontSize: 18, color: Colors.grey),
+            ),
+            SizedBox(height: 8),
+            Text(
+              'Enter a search term to find quotes',
+              style: TextStyle(color: Colors.grey),
+            ),
+          ],
+        ),
+      );
+    }
 
-    return quotationsAsync.when(
-      data: (quotations) {
-        if (searchQuery.isEmpty) {
-          return const Center(
+    return StreamBuilder<List<Quote>>(
+      stream: ref.read(quotesProvider.stream).map((quotes) => 
+          quotes.where((quote) => quote.matchesSearch(_searchQuery)).toList()),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (snapshot.hasError) {
+          return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  Icons.format_quote,
-                  size: 64,
-                  color: Colors.grey,
-                ),
-                SizedBox(height: 16),
-                Text(
-                  'Search for quotations',
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: Colors.grey,
-                  ),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'Enter quotation text or book name',
-                  style: TextStyle(
-                    color: Colors.grey,
-                  ),
-                ),
+                const Icon(Icons.error, size: 64, color: Colors.red),
+                const SizedBox(height: 16),
+                Text('Error: ${snapshot.error}'),
               ],
             ),
           );
         }
 
-        if (quotations.isEmpty) {
+        final quotes = snapshot.data ?? [];
+        if (quotes.isEmpty) {
           return const Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  Icons.search_off,
-                  size: 64,
-                  color: Colors.grey,
-                ),
+                Icon(Icons.search_off, size: 64, color: Colors.grey),
                 SizedBox(height: 16),
                 Text(
-                  'No quotations found',
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: Colors.grey,
-                  ),
+                  'No quotes found',
+                  style: TextStyle(fontSize: 18, color: Colors.grey),
                 ),
                 SizedBox(height: 8),
                 Text(
                   'Try a different search term',
-                  style: TextStyle(
-                    color: Colors.grey,
-                  ),
+                  style: TextStyle(color: Colors.grey),
                 ),
               ],
             ),
@@ -282,9 +273,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
 
         return ListView.builder(
           padding: const EdgeInsets.all(16),
-          itemCount: quotations.length,
+          itemCount: quotes.length,
           itemBuilder: (context, index) {
-            final quotation = quotations[index];
+            final quote = quotes[index];
             return Card(
               margin: const EdgeInsets.only(bottom: 12),
               child: Padding(
@@ -293,36 +284,32 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      quotation.content,
-                      style: const TextStyle(fontSize: 16),
+                      quote.quote,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontStyle: FontStyle.italic,
+                      ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 12),
                     Text(
-                      '— ${quotation.sourceTitle}',
+                      '— Source ID: ${quote.sourceId}',
                       style: TextStyle(
                         color: Colors.grey[600],
                         fontWeight: FontWeight.w500,
                       ),
                     ),
-                    if (quotation.pageNumber != null) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        'Page ${quotation.pageNumber}',
-                        style: TextStyle(
-                          color: Colors.grey[500],
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                    if (quotation.hashtags.isNotEmpty) ...[
+                    if (quote.hashtags.isNotEmpty) ...[
                       const SizedBox(height: 8),
                       Wrap(
                         spacing: 4,
-                        children: quotation.hashtags.map((tag) {
+                        children: quote.hashtags.map((tag) {
                           return Chip(
-                            label: Text('#$tag'),
-                            backgroundColor: Colors.blue[50],
-                            labelStyle: const TextStyle(fontSize: 12),
+                            label: Text(
+                              '#$tag',
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                            backgroundColor: Colors.blue[100],
+                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           );
                         }).toList(),
                       ),
@@ -334,219 +321,94 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
           },
         );
       },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stack) => Center(
-        child: Text(
-          'Error: ${error.toString()}',
-          style: const TextStyle(color: Colors.red),
-        ),
-      ),
     );
   }
 
-  Widget _buildHashtagSearch() {
-    final hashtagQuery = ref.watch(hashtagSearchProvider);
-    final allHashtagsAsync = ref.watch(allHashtagsProvider);
-    final quotationsAsync = ref.watch(quotationsByHashtagProvider);
+  Widget _buildHashtagsTab() {
+    return FutureBuilder<List<String>>(
+      future: ref.read(allHashtagsProvider.future),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-    return Column(
-      children: [
-        // All Hashtags
-        if (hashtagQuery.isEmpty)
-          Expanded(
-            child: allHashtagsAsync.when(
-              data: (hashtags) {
-                if (hashtags.isEmpty) {
-                  return const Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.tag,
-                          size: 64,
-                          color: Colors.grey,
-                        ),
-                        SizedBox(height: 16),
-                        Text(
-                          'No hashtags yet',
-                          style: TextStyle(
-                            fontSize: 18,
-                            color: Colors.grey,
-                          ),
-                        ),
-                        SizedBox(height: 8),
-                        Text(
-                          'Add quotations with hashtags to see them here',
-                          style: TextStyle(
-                            color: Colors.grey,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-
-                return Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'All Hashtags',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: hashtags.map((hashtag) {
-                          return ActionChip(
-                            label: Text('#$hashtag'),
-                            onPressed: () {
-                              _searchController.text = hashtag;
-                              ref.read(hashtagSearchProvider.notifier).state = hashtag;
-                            },
-                          );
-                        }).toList(),
-                      ),
-                    ],
-                  ),
-                );
-              },
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, stack) => Center(
-                child: Text(
-                  'Error: ${error.toString()}',
-                  style: const TextStyle(color: Colors.red),
-                ),
-              ),
+        if (snapshot.hasError) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error, size: 64, color: Colors.red),
+                const SizedBox(height: 16),
+                Text('Error: ${snapshot.error}'),
+              ],
             ),
-          ),
+          );
+        }
 
-        // Hashtag Results
-        if (hashtagQuery.isNotEmpty)
-          Expanded(
-            child: quotationsAsync.when(
-              data: (quotations) {
-                if (quotations.isEmpty) {
-                  return const Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.search_off,
-                          size: 64,
-                          color: Colors.grey,
-                        ),
-                        SizedBox(height: 16),
-                        Text(
-                          'No quotations found',
-                          style: TextStyle(
-                            fontSize: 18,
-                            color: Colors.grey,
-                          ),
-                        ),
-                        SizedBox(height: 8),
-                        Text(
-                          'No quotations with this hashtag',
-                          style: TextStyle(
-                            color: Colors.grey,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-
-                return ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: quotations.length,
-                  itemBuilder: (context, index) {
-                    final quotation = quotations[index];
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              quotation.content,
-                              style: const TextStyle(fontSize: 16),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              '— ${quotation.sourceTitle}',
-                              style: TextStyle(
-                                color: Colors.grey[600],
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            if (quotation.pageNumber != null) ...[
-                              const SizedBox(height: 4),
-                              Text(
-                                'Page ${quotation.pageNumber}',
-                                style: TextStyle(
-                                  color: Colors.grey[500],
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                            const SizedBox(height: 8),
-                            Wrap(
-                              spacing: 4,
-                              children: quotation.hashtags.map((tag) {
-                                return Chip(
-                                  label: Text('#$tag'),
-                                  backgroundColor: tag == hashtagQuery
-                                      ? Colors.blue[200]
-                                      : Colors.blue[50],
-                                  labelStyle: const TextStyle(fontSize: 12),
-                                );
-                              }).toList(),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                );
-              },
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, stack) => Center(
-                child: Text(
-                  'Error: ${error.toString()}',
-                  style: const TextStyle(color: Colors.red),
+        final hashtags = snapshot.data ?? [];
+        if (hashtags.isEmpty) {
+          return const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.tag, size: 64, color: Colors.grey),
+                SizedBox(height: 16),
+                Text(
+                  'No hashtags yet',
+                  style: TextStyle(fontSize: 18, color: Colors.grey),
                 ),
-              ),
+                SizedBox(height: 8),
+                Text(
+                  'Add hashtags to your quotes',
+                  style: TextStyle(color: Colors.grey),
+                ),
+              ],
             ),
-          ),
-      ],
+          );
+        }
+
+        // Filter hashtags based on search query
+        final filteredHashtags = _searchQuery.isEmpty
+            ? hashtags
+            : hashtags.where((tag) => 
+                tag.toLowerCase().contains(_searchQuery.toLowerCase())).toList();
+
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: filteredHashtags.length,
+          itemBuilder: (context, index) {
+            final hashtag = filteredHashtags[index];
+            return Card(
+              margin: const EdgeInsets.only(bottom: 8),
+              child: ListTile(
+                leading: const Icon(Icons.tag),
+                title: Text('#$hashtag'),
+                onTap: () {
+                  // TODO: Show quotes with this hashtag
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Showing quotes with #$hashtag')),
+                  );
+                },
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
-  String _getStatusDisplayName(ReadingStatus status) {
+  Color _getStatusColor(models.SourceStatus status) {
     switch (status) {
-      case ReadingStatus.read:
-        return 'Read';
-      case ReadingStatus.reading:
-        return 'Reading';
-      case ReadingStatus.willRead:
-        return 'Will Read';
-    }
-  }
-
-  Color _getStatusColor(ReadingStatus status) {
-    switch (status) {
-      case ReadingStatus.willRead:
-        return Colors.blue[100]!;
-      case ReadingStatus.reading:
-        return Colors.orange[100]!;
-      case ReadingStatus.read:
-        return Colors.green[100]!;
+      case models.SourceStatus.notStarted:
+        return Colors.grey[300]!;
+      case models.SourceStatus.inProgress:
+        return Colors.blue[200]!;
+      case models.SourceStatus.completed:
+        return Colors.green[200]!;
+      case models.SourceStatus.paused:
+        return Colors.orange[200]!;
+      case models.SourceStatus.abandoned:
+        return Colors.red[200]!;
     }
   }
 }

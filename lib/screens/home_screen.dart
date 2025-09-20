@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'books_screen.dart';
-import 'quotations_screen.dart';
+import 'groups_screen.dart';
+import 'sources_screen.dart';
+import 'quotes_screen.dart';
 import 'search_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -15,8 +16,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   int _currentIndex = 0;
 
   final List<Widget> _screens = [
-    const BooksScreen(),
-    const QuotationsScreen(),
+    const GroupsScreen(),
+    const SourcesScreen(),
+    const QuotesScreen(),
     const SearchScreen(),
   ];
 
@@ -34,12 +36,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         type: BottomNavigationBarType.fixed,
         items: const [
           BottomNavigationBarItem(
+            icon: Icon(Icons.folder),
+            label: 'Groups',
+          ),
+          BottomNavigationBarItem(
             icon: Icon(Icons.library_books),
-            label: 'Books',
+            label: 'Sources',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.format_quote),
-            label: 'Quotations',
+            label: 'Quotes',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.search),

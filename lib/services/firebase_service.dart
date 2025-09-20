@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../models/book.dart';
-import '../models/quotation.dart';
+import '../models/group.dart';
+import '../models/quote.dart';
 import '../models/source.dart' as models;
 
 class FirebaseService {
@@ -11,163 +11,120 @@ class FirebaseService {
   // User management
   static String? get currentUserId => _auth.currentUser?.uid;
 
-  // Books collection
-  static CollectionReference get _booksCollection =>
-      _firestore.collection('users').doc(currentUserId).collection('books');
-
-  // Quotations collection
-  static CollectionReference get _quotationsCollection =>
-      _firestore.collection('users').doc(currentUserId).collection('quotations');
+  // Groups collection
+  static CollectionReference get _groupsCollection =>
+      _firestore.collection('users').doc(currentUserId).collection('groups');
 
   // Sources collection
   static CollectionReference get _sourcesCollection =>
       _firestore.collection('users').doc(currentUserId).collection('sources');
 
-  // Book operations
-  static Future<String> addBook(Book book) async {
-    final docRef = await _booksCollection.add(book.toFirestore());
+  // Quotes collection
+  static CollectionReference get _quotesCollection =>
+      _firestore.collection('users').doc(currentUserId).collection('quotes');
+
+  // Group operations
+  static Future<String> addGroup(Group group) async {
+    final docRef = await _groupsCollection.add(group.toFirestore());
     return docRef.id;
   }
 
-  static Future<void> updateBook(Book book) async {
-    await _booksCollection.doc(book.id).update(book.toFirestore());
+  static Future<void> updateGroup(Group group) async {
+    await _groupsCollection.doc(group.id).update(group.toFirestore());
   }
 
-  static Future<void> deleteBook(String bookId) async {
-    // Delete all quotations for this book first
-    final quotations = await _quotationsCollection
-        .where('bookId', isEqualTo: bookId)
+  static Future<void> deleteGroup(String groupId) async {
+    // Delete all sources in this group first
+    final sources = await _sourcesCollection
+        .where('groupId', isEqualTo: groupId)
         .get();
     
-    for (var doc in quotations.docs) {
-      await doc.reference.delete();
+    for (var doc in sources.docs) {
+      await deleteSource(doc.id);
     }
     
-    // Delete the book
-    await _booksCollection.doc(bookId).delete();
+    // Delete the group
+    await _groupsCollection.doc(groupId).delete();
   }
 
-  static Stream<List<Book>> getBooks() {
-    return _booksCollection
-        .orderBy('updatedAt', descending: true)
-        .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => Book.fromFirestore(doc))
-            .toList());
+  static Future<List<Group>> getGroups() async {
+    final snapshot = await _groupsCollection
+        .orderBy('createdAt', descending: true)
+        .get();
+    return snapshot.docs
+        .map((doc) => Group.fromFirestore(doc))
+        .toList();
   }
 
-  static Stream<List<Book>> getBooksByStatus(ReadingStatus status) {
-    return _booksCollection
-        .where('status', isEqualTo: status.toString().split('.').last)
-        .orderBy('updatedAt', descending: true)
-        .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => Book.fromFirestore(doc))
-            .toList());
-  }
-
-  static Future<Book?> getBookById(String bookId) async {
-    final doc = await _booksCollection.doc(bookId).get();
+  static Future<Group?> getGroupById(String groupId) async {
+    final doc = await _groupsCollection.doc(groupId).get();
     if (doc.exists) {
-      return Book.fromFirestore(doc);
+      return Group.fromFirestore(doc);
     }
     return null;
   }
 
-  // Quotation operations
-  static Future<String> addQuotation(Quotation quotation) async {
-    final docRef = await _quotationsCollection.add(quotation.toFirestore());
+  // Quote operations
+  static Future<String> addQuote(Quote quote) async {
+    final docRef = await _quotesCollection.add(quote.toFirestore());
     return docRef.id;
   }
 
-  static Future<void> updateQuotation(Quotation quotation) async {
-    await _quotationsCollection.doc(quotation.id).update(quotation.toFirestore());
+  static Future<void> updateQuote(Quote quote) async {
+    await _quotesCollection.doc(quote.id).update(quote.toFirestore());
   }
 
-  static Future<void> deleteQuotation(String quotationId) async {
-    await _quotationsCollection.doc(quotationId).delete();
+  static Future<void> deleteQuote(String quoteId) async {
+    await _quotesCollection.doc(quoteId).delete();
   }
 
-  static Stream<List<Quotation>> getQuotations() {
-    return _quotationsCollection
+  static Stream<List<Quote>> getQuotes() {
+    return _quotesCollection
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) => snapshot.docs
-            .map((doc) => Quotation.fromFirestore(doc))
+            .map((doc) => Quote.fromFirestore(doc))
             .toList());
   }
 
-  static Stream<List<Quotation>> getQuotationsByBook(String bookId) {
-    return _quotationsCollection
-        .where('bookId', isEqualTo: bookId)
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => Quotation.fromFirestore(doc))
-            .toList());
-  }
-
-  static Stream<List<Quotation>> getQuotationsBySource(String sourceId) {
-    return _quotationsCollection
+  static Stream<List<Quote>> getQuotesBySource(String sourceId) {
+    return _quotesCollection
         .where('sourceId', isEqualTo: sourceId)
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) => snapshot.docs
-            .map((doc) => Quotation.fromFirestore(doc))
+            .map((doc) => Quote.fromFirestore(doc))
             .toList());
   }
 
-  static Stream<List<Quotation>> getQuotationsBySourceType(models.SourceType sourceType) {
-    return _quotationsCollection
-        .where('sourceType', isEqualTo: sourceType.toString().split('.').last)
+  static Stream<List<Quote>> searchQuotes(String query) {
+    return _quotesCollection
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) => snapshot.docs
-            .map((doc) => Quotation.fromFirestore(doc))
+            .map((doc) => Quote.fromFirestore(doc))
+            .where((quote) => quote.matchesSearch(query))
             .toList());
   }
 
-  static Stream<List<Quotation>> searchQuotations(String query) {
-    return _quotationsCollection
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => Quotation.fromFirestore(doc))
-            .where((quotation) => quotation.matchesSearch(query))
-            .toList());
-  }
-
-  static Stream<List<Quotation>> getQuotationsByHashtag(String hashtag) {
-    return _quotationsCollection
+  static Stream<List<Quote>> getQuotesByHashtag(String hashtag) {
+    return _quotesCollection
         .where('hashtags', arrayContains: hashtag)
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) => snapshot.docs
-            .map((doc) => Quotation.fromFirestore(doc))
-            .toList());
-  }
-
-  // Search operations
-  static Stream<List<Book>> searchBooks(String query) {
-    return _booksCollection
-        .orderBy('updatedAt', descending: true)
-        .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => Book.fromFirestore(doc))
-            .where((book) => 
-                book.title.toLowerCase().contains(query.toLowerCase()) ||
-                book.author.toLowerCase().contains(query.toLowerCase()))
+            .map((doc) => Quote.fromFirestore(doc))
             .toList());
   }
 
   // Get all unique hashtags
   static Future<List<String>> getAllHashtags() async {
-    final quotations = await _quotationsCollection.get();
+    final quotes = await _quotesCollection.get();
     final allHashtags = <String>{};
     
-    for (var doc in quotations.docs) {
-      final quotation = Quotation.fromFirestore(doc);
-      allHashtags.addAll(quotation.hashtags);
+    for (var doc in quotes.docs) {
+      final quote = Quote.fromFirestore(doc);
+      allHashtags.addAll(quote.hashtags);
     }
     
     return allHashtags.toList()..sort();
@@ -184,12 +141,12 @@ class FirebaseService {
   }
 
   static Future<void> deleteSource(String sourceId) async {
-    // Delete all quotations for this source first
-    final quotations = await _quotationsCollection
+    // Delete all quotes for this source first
+    final quotes = await _quotesCollection
         .where('sourceId', isEqualTo: sourceId)
         .get();
     
-    for (var doc in quotations.docs) {
+    for (var doc in quotes.docs) {
       await doc.reference.delete();
     }
     
@@ -224,16 +181,17 @@ class FirebaseService {
     return null;
   }
 
-  static Stream<List<models.Source>> searchSources(String query) {
-    return _sourcesCollection
+  static Future<List<models.Source>> searchSources(String query) async {
+    final snapshot = await _sourcesCollection
         .orderBy('createdAt', descending: true)
-        .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => models.Source.fromFirestore(doc))
-            .where((source) => 
-                source.title.toLowerCase().contains(query.toLowerCase()) ||
-                source.author.toLowerCase().contains(query.toLowerCase()) ||
-                (source.description?.toLowerCase().contains(query.toLowerCase()) ?? false))
-            .toList());
+        .get();
+    
+    return snapshot.docs
+        .map((doc) => models.Source.fromFirestore(doc))
+        .where((source) => 
+            source.title.toLowerCase().contains(query.toLowerCase()) ||
+            source.source.toLowerCase().contains(query.toLowerCase()) ||
+            (source.notes?.toLowerCase().contains(query.toLowerCase()) ?? false))
+        .toList();
   }
 }
