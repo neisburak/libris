@@ -4,6 +4,7 @@ import 'package:flutter_slidable/flutter_slidable.dart';
 import '../models/quote.dart';
 import '../providers/quotation_provider.dart';
 import 'add_quote_screen.dart';
+import 'settings_screen.dart';
 
 class QuotesScreen extends ConsumerStatefulWidget {
   const QuotesScreen({super.key});
@@ -31,6 +32,15 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
               );
             },
           ),
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SettingsScreen()),
+              );
+            },
+          ),
         ],
       ),
       body: quotesAsync.isEmpty
@@ -55,6 +65,7 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
               ),
             )
           : ListView.builder(
+              padding: const EdgeInsets.all(16),
               itemCount: quotesAsync.length,
               itemBuilder: (context, index) {
                 final quote = quotesAsync[index];
@@ -81,10 +92,6 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
                     ],
                   ),
                   child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
                     title: Text(
                       quote.quote,
                       style: const TextStyle(

@@ -4,6 +4,7 @@ import 'package:flutter_slidable/flutter_slidable.dart';
 import '../models/group.dart';
 import '../providers/group_provider.dart';
 import 'add_group_screen.dart';
+import 'settings_screen.dart';
 import 'sources_screen.dart';
 
 class GroupsScreen extends ConsumerStatefulWidget {
@@ -36,6 +37,15 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen> {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const AddGroupScreen()),
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SettingsScreen()),
               );
             },
           ),

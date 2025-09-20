@@ -7,6 +7,7 @@ import '../providers/source_provider.dart';
 import '../providers/group_provider.dart';
 import 'add_source_screen.dart';
 import 'source_detail_screen.dart';
+import 'settings_screen.dart';
 
 class SourcesScreen extends ConsumerStatefulWidget {
   final String? groupId; // Optional filter by group
@@ -82,6 +83,15 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
                         : null,
                   ),
                 ),
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SettingsScreen()),
               );
             },
           ),

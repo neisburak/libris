@@ -4,6 +4,7 @@ import '../models/quote.dart';
 import '../models/source.dart' as models;
 import '../providers/quotation_provider.dart';
 import '../providers/source_provider.dart';
+import 'settings_screen.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
@@ -36,6 +37,17 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
     return Scaffold(
       appBar: AppBar(
         title: const Text('Search'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SettingsScreen()),
+              );
+            },
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           tabs: const [
