@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import '../models/group.dart';
 import '../providers/group_provider.dart';
 import 'add_group_screen.dart';
@@ -53,62 +54,48 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen> {
               itemCount: groupsAsync.length,
               itemBuilder: (context, index) {
                 final group = groupsAsync[index];
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 12),
+                return Slidable(
+                  key: ValueKey(group.id),
+                  endActionPane: ActionPane(
+                    motion: const ScrollMotion(),
+                    children: [
+                      SlidableAction(
+                        // An action can be bigger than the others.
+                        onPressed: (_) => _editGroup(group),
+                        backgroundColor: Colors.green.shade600,
+                        foregroundColor: Colors.white,
+                        icon: Icons.edit,
+                        label: 'Update',
+                      ),
+                      SlidableAction(
+                        onPressed: (_) => _deleteGroup(group),
+                        backgroundColor: Colors.red.shade600,
+                        foregroundColor: Colors.white,
+                        icon: Icons.delete,
+                        label: 'Delete',
+                      ),
+                    ],
+                  ),
                   child: ListTile(
-                    leading: const CircleAvatar(
-                      child: Icon(Icons.folder),
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(Icons.folder, color: Colors.amber.shade700),
                     ),
                     title: Text(
                       group.name,
                       style: const TextStyle(fontWeight: FontWeight.w600),
                     ),
-                    subtitle: Text(
-                      group.description,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.library_books),
-                          onPressed: () => _navigateToGroupSources(group),
-                          tooltip: 'View sources in this group',
-                        ),
-                        PopupMenuButton(
-                          itemBuilder: (context) => [
-                            const PopupMenuItem(
-                              value: 'edit',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.edit),
-                                  SizedBox(width: 8),
-                                  Text('Edit'),
-                                ],
-                              ),
-                            ),
-                            const PopupMenuItem(
-                              value: 'delete',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.delete, color: Colors.red),
-                                  SizedBox(width: 8),
-                                  Text('Delete', style: TextStyle(color: Colors.red)),
-                                ],
-                              ),
-                            ),
-                          ],
-                          onSelected: (value) {
-                            if (value == 'edit') {
-                              _editGroup(group);
-                            } else if (value == 'delete') {
-                              _deleteGroup(group);
-                            }
-                          },
-                        ),
-                      ],
-                    ),
+                    subtitle: group.description.isNotEmpty
+                        ? Text(
+                            group.description,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          )
+                        : null,
                     onTap: () {
                       // Navigate to group details or sources in this group
                       _navigateToGroupSources(group);
@@ -121,9 +108,7 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen> {
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (context) => const AddGroupScreen(),
-            ),
+            MaterialPageRoute(builder: (context) => const AddGroupScreen()),
           );
         },
         child: const Icon(Icons.add),
@@ -165,9 +150,7 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen> {
   void _editGroup(Group group) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => AddGroupScreen(group: group),
-      ),
+      MaterialPageRoute(builder: (context) => AddGroupScreen(group: group)),
     );
   }
 
@@ -176,7 +159,9 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Group'),
-        content: Text('Are you sure you want to delete "${group.name}"? This will also delete all sources in this group.'),
+        content: Text(
+          'Are you sure you want to delete "${group.name}"? This will also delete all sources in this group.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -198,9 +183,7 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen> {
   void _navigateToGroupSources(Group group) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => SourcesScreen(groupId: group.id),
-      ),
+      MaterialPageRoute(builder: (context) => SourcesScreen(groupId: group.id)),
     );
   }
 }
