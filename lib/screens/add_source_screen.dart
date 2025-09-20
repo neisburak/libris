@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import '../models/source.dart' as models;
+import '../models/group.dart';
 import '../providers/source_provider.dart';
 import '../providers/group_provider.dart';
 
@@ -24,7 +25,7 @@ class _AddSourceScreenState extends ConsumerState<AddSourceScreen> {
 
   models.SourceType _selectedType = models.SourceType.book;
   models.SourceStatus _selectedStatus = models.SourceStatus.notStarted;
-  String _selectedGroupId = '';
+  List<String> _selectedGroupIds = [];
   DateTime? _startDate;
   DateTime? _finishDate;
   bool _isLoading = false;
@@ -32,7 +33,9 @@ class _AddSourceScreenState extends ConsumerState<AddSourceScreen> {
   @override
   void initState() {
     super.initState();
-    _selectedGroupId = widget.groupId ?? '';
+    if (widget.groupId != null) {
+      _selectedGroupIds = [widget.groupId!];
+    }
     
     if (widget.source != null) {
       _titleController.text = widget.source!.title;
@@ -41,7 +44,7 @@ class _AddSourceScreenState extends ConsumerState<AddSourceScreen> {
       _notesController.text = widget.source!.notes ?? '';
       _selectedType = widget.source!.type;
       _selectedStatus = widget.source!.status;
-      _selectedGroupId = widget.source!.groupId;
+      _selectedGroupIds = List.from(widget.source!.groupIds);
       _startDate = widget.source!.startDate;
       _finishDate = widget.source!.finishDate;
     }
@@ -87,32 +90,67 @@ class _AddSourceScreenState extends ConsumerState<AddSourceScreen> {
                 builder: (context, ref, child) {
                   final groupsAsync = ref.watch(groupProvider);
                   return groupsAsync.when(
-                    data: (groups) => DropdownButtonFormField<String>(
-                      value: _selectedGroupId.isEmpty ? null : _selectedGroupId,
-                      decoration: const InputDecoration(
-                        labelText: 'Group',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.folder),
-                      ),
-                      items: [
-                        const DropdownMenuItem<String>(
-                          value: '',
-                          child: Text('Select Group (Optional)'),
+                    data: (groups) => Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Groups',
+                          style: Theme.of(context).textTheme.titleMedium,
                         ),
-                        ...groups.map((group) => DropdownMenuItem<String>(
-                          value: group.id,
-                          child: Text(group.name),
-                        )),
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey.shade300),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Column(
+                            children: [
+                              if (_selectedGroupIds.isEmpty)
+                                const Text(
+                                  'No groups selected',
+                                  style: TextStyle(color: Colors.grey),
+                                )
+                              else
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 4,
+                                  children: _selectedGroupIds.map((groupId) {
+                                    final group = groups.firstWhere(
+                                      (g) => g.id == groupId,
+                                      orElse: () => Group(
+                                        id: '',
+                                        name: 'Unknown',
+                                        description: '',
+                                        createdAt: DateTime.now(),
+                                      ),
+                                    );
+                                    return Chip(
+                                      label: Text(group.name),
+                                      onDeleted: () {
+                                        setState(() {
+                                          _selectedGroupIds.remove(groupId);
+                                        });
+                                      },
+                                      deleteIcon: const Icon(Icons.close, size: 18),
+                                    );
+                                  }).toList(),
+                                ),
+                              const SizedBox(height: 8),
+                              ElevatedButton.icon(
+                                onPressed: () => _showGroupSelectionDialog(groups),
+                                icon: const Icon(Icons.add),
+                                label: const Text('Add Groups'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
+                                  foregroundColor: Theme.of(context).primaryColor,
+                                  elevation: 0,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ],
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedGroupId = value ?? '';
-                        });
-                      },
-                      validator: (value) {
-                        // Group selection is optional for sources
-                        return null;
-                      },
                     ),
                     loading: () => const CircularProgressIndicator(),
                     error: (_, __) => const Text('Error loading groups'),
@@ -393,7 +431,7 @@ class _AddSourceScreenState extends ConsumerState<AddSourceScreen> {
     try {
       final source = models.Source(
         id: widget.source?.id ?? const Uuid().v4(),
-        groupId: _selectedGroupId,
+        groupIds: _selectedGroupIds,
         type: _selectedType,
         title: _titleController.text.trim(),
         source: _sourceController.text.trim(),
@@ -437,5 +475,50 @@ class _AddSourceScreenState extends ConsumerState<AddSourceScreen> {
         });
       }
     }
+  }
+
+  void _showGroupSelectionDialog(List<Group> groups) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Select Groups'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: groups.length,
+            itemBuilder: (context, index) {
+              final group = groups[index];
+              final isSelected = _selectedGroupIds.contains(group.id);
+              
+              return CheckboxListTile(
+                title: Text(group.name),
+                subtitle: group.description.isNotEmpty 
+                    ? Text(group.description, maxLines: 1, overflow: TextOverflow.ellipsis)
+                    : null,
+                value: isSelected,
+                onChanged: (value) {
+                  setState(() {
+                    if (value == true) {
+                      if (!_selectedGroupIds.contains(group.id)) {
+                        _selectedGroupIds.add(group.id);
+                      }
+                    } else {
+                      _selectedGroupIds.remove(group.id);
+                    }
+                  });
+                },
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Done'),
+          ),
+        ],
+      ),
+    );
   }
 }

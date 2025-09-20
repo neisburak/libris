@@ -6,7 +6,7 @@ enum SourceStatus { notStarted, inProgress, completed, paused, abandoned }
 
 class Source {
   final String id;
-  final String groupId;
+  final List<String> groupIds;
   final SourceType type;
   final String title;
   final String source; // Author/Creator
@@ -19,7 +19,7 @@ class Source {
 
   Source({
     required this.id,
-    required this.groupId,
+    required this.groupIds,
     required this.type,
     required this.title,
     required this.source,
@@ -35,7 +35,9 @@ class Source {
     Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
     return Source(
       id: doc.id,
-      groupId: data['groupId'] ?? '',
+      groupIds: data['groupIds'] != null 
+          ? List<String>.from(data['groupIds'])
+          : (data['groupId'] != null ? [data['groupId']] : []), // Backward compatibility
       type: SourceType.values.firstWhere(
         (e) => e.toString() == 'SourceType.${data['type']}',
         orElse: () => SourceType.other,
@@ -60,7 +62,7 @@ class Source {
 
   Map<String, dynamic> toFirestore() {
     return {
-      'groupId': groupId,
+      'groupIds': groupIds,
       'type': type.toString().split('.').last,
       'title': title,
       'source': source,
@@ -75,7 +77,7 @@ class Source {
 
   Source copyWith({
     String? id,
-    String? groupId,
+    List<String>? groupIds,
     SourceType? type,
     String? title,
     String? source,
@@ -88,7 +90,7 @@ class Source {
   }) {
     return Source(
       id: id ?? this.id,
-      groupId: groupId ?? this.groupId,
+      groupIds: groupIds ?? this.groupIds,
       type: type ?? this.type,
       title: title ?? this.title,
       source: source ?? this.source,
@@ -154,4 +156,21 @@ class Source {
   bool get hasNotes => notes != null && notes!.isNotEmpty;
   bool get isCompleted => status == SourceStatus.completed;
   bool get isInProgress => status == SourceStatus.inProgress;
+  bool get hasGroups => groupIds.isNotEmpty;
+  bool isInGroup(String groupId) => groupIds.contains(groupId);
+  
+  // Helper methods for group management
+  Source addToGroup(String groupId) {
+    if (groupIds.contains(groupId)) return this;
+    return copyWith(groupIds: [...groupIds, groupId]);
+  }
+  
+  Source removeFromGroup(String groupId) {
+    if (!groupIds.contains(groupId)) return this;
+    return copyWith(groupIds: groupIds.where((id) => id != groupId).toList());
+  }
+  
+  Source setGroups(List<String> newGroupIds) {
+    return copyWith(groupIds: newGroupIds);
+  }
 }

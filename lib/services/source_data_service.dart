@@ -100,7 +100,7 @@ class SourceDataService {
   static Future<List<models.Source>> getSourcesByGroup(String groupId) async {
     try {
       final snapshot = await _sourcesCollection
-          .where('groupId', isEqualTo: groupId)
+          .where('groupIds', arrayContains: groupId)
           .orderBy('createdAt', descending: true)
           .get()
           .timeout(const Duration(seconds: 3));
@@ -109,6 +109,28 @@ class SourceDataService {
           .toList();
     } catch (e) {
       Logger.log('Error loading sources by group: $e');
+      return [];
+    }
+  }
+
+  /// Get sources by multiple groups
+  static Future<List<models.Source>> getSourcesByGroups(List<String> groupIds) async {
+    try {
+      if (groupIds.isEmpty) return [];
+      
+      // Firestore doesn't support OR queries directly, so we need to get all sources
+      // and filter them in memory for multiple groups
+      final snapshot = await _sourcesCollection
+          .orderBy('createdAt', descending: true)
+          .get()
+          .timeout(const Duration(seconds: 3));
+      
+      return snapshot.docs
+          .map((doc) => models.Source.fromFirestore(doc))
+          .where((source) => source.groupIds.any((groupId) => groupIds.contains(groupId)))
+          .toList();
+    } catch (e) {
+      Logger.log('Error loading sources by groups: $e');
       return [];
     }
   }
@@ -143,6 +165,28 @@ class SourceDataService {
     } catch (e) {
       Logger.log('Error searching sources: $e');
       return [];
+    }
+  }
+
+  /// Remove a group from all sources that contain it
+  static Future<void> removeGroupFromAllSources(String groupId) async {
+    try {
+      final sources = await getSourcesByGroup(groupId);
+      final batch = _firestore.batch();
+      
+      for (final source in sources) {
+        final updatedSource = source.removeFromGroup(groupId);
+        batch.update(
+          _sourcesCollection.doc(source.id),
+          updatedSource.toFirestore(),
+        );
+      }
+      
+      await batch.commit();
+      Logger.log('Removed group $groupId from ${sources.length} sources');
+    } catch (e) {
+      Logger.log('Error removing group from sources: $e');
+      rethrow;
     }
   }
 }

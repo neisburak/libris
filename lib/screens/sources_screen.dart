@@ -112,7 +112,7 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => AddSourceScreen(groupId: _selectedGroupId),
+              builder: (context) => AddSourceScreen(groupId: _selectedGroupId.isNotEmpty ? _selectedGroupId : null),
             ),
           );
         },
@@ -130,7 +130,7 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
         // Filter by group if selected
         if (_selectedGroupId.isNotEmpty) {
           filteredSources = filteredSources
-              .where((source) => source.groupId == _selectedGroupId)
+              .where((source) => source.isInGroup(_selectedGroupId))
               .toList();
         }
 
@@ -163,7 +163,7 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
         // Filter by group if selected
         if (_selectedGroupId.isNotEmpty) {
           filteredSources = filteredSources
-              .where((source) => source.groupId == _selectedGroupId)
+              .where((source) => source.isInGroup(_selectedGroupId))
               .toList();
         }
 
@@ -253,38 +253,44 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
                         style: TextStyle(color: Colors.grey[600], fontSize: 14),
                       ),
                     ),
-                    if (source.groupId.isNotEmpty)
+                    if (source.hasGroups)
                       Consumer(
                         builder: (context, ref, child) {
                           final groupsAsync = ref.watch(groupProvider);
                           return groupsAsync.when(
                             data: (groups) {
-                              final group = groups.firstWhere(
-                                (g) => g.id == source.groupId,
-                                orElse: () => Group(
-                                  id: '',
-                                  name: 'Unknown',
-                                  description: '',
-                                  createdAt: DateTime.now(),
-                                ),
-                              );
-                              return Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.blue[100],
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Text(
-                                  group.name,
-                                  style: TextStyle(
-                                    color: Colors.blue[800],
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
+                              return Wrap(
+                                spacing: 4,
+                                runSpacing: 2,
+                                children: source.groupIds.map((groupId) {
+                                  final group = groups.firstWhere(
+                                    (g) => g.id == groupId,
+                                    orElse: () => Group(
+                                      id: '',
+                                      name: 'Unknown',
+                                      description: '',
+                                      createdAt: DateTime.now(),
+                                    ),
+                                  );
+                                  return Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.blue[100],
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Text(
+                                      group.name,
+                                      style: TextStyle(
+                                        color: Colors.blue[800],
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
                               );
                             },
                             loading: () => const SizedBox.shrink(),

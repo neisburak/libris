@@ -59,7 +59,7 @@ class SourceNotifier extends StateNotifier<AsyncValue<List<models.Source>>> {
   List<models.Source> getSourcesByGroup(String groupId) {
     return state.when(
       data: (sources) =>
-          sources.where((source) => source.groupId == groupId).toList(),
+          sources.where((source) => source.isInGroup(groupId)).toList(),
       loading: () => [],
       error: (_, __) => [],
     );

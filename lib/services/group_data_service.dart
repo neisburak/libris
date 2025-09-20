@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:libris_app/utils/logger.dart';
 import '../models/group.dart';
+import 'source_data_service.dart';
 
 class GroupDataService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -43,18 +44,10 @@ class GroupDataService {
     await _groupsCollection.doc(group.id).update(group.toFirestore());
   }
 
-  /// Delete a group and all its sources
+  /// Delete a group and remove it from all sources
   static Future<void> deleteGroup(String groupId) async {
-    // First, delete all sources in this group
-    final sources = await _firestore
-        .collection('sources')
-        .where('groupId', isEqualTo: groupId)
-        .get();
-
-    for (var doc in sources.docs) {
-      await _firestore.collection('sources').doc(doc.id).delete();
-      Logger.log('Source deleted: ${doc.id}');
-    }
+    // Remove the group from all sources that contain it
+    await SourceDataService.removeGroupFromAllSources(groupId);
 
     // Delete the group
     await _groupsCollection.doc(groupId).delete();
