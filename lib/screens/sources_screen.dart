@@ -237,22 +237,27 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
           ),
           child: ListTile(
             contentPadding: const EdgeInsets.all(16),
-            leading: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: _getTypeColor(source.type).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                source.typeIcon,
-                style: const TextStyle(fontSize: 20),
-              ),
-            ),
-            title: Text(
-              source.title,
-              style: const TextStyle(fontWeight: FontWeight.w600),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
+            title: Row(
+              children: [
+                Text(
+                  source.title,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: _getTypeColor(source.type).withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    source.typeDisplayName,
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                ),
+              ],
             ),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -262,91 +267,54 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
                   children: [
                     Expanded(
                       child: Text(
-                        'by ${source.source}',
+                        source.source,
                         style: TextStyle(color: Colors.grey[600], fontSize: 14),
                       ),
                     ),
-                    if (source.hasGroups)
-                      Consumer(
-                        builder: (context, ref, child) {
-                          final groupsAsync = ref.watch(groupProvider);
-                          return groupsAsync.when(
-                            data: (groups) {
-                              return Wrap(
-                                spacing: 4,
-                                runSpacing: 2,
-                                children: source.groupIds.map((groupId) {
-                                  final group = groups.firstWhere(
-                                    (g) => g.id == groupId,
-                                    orElse: () => Group(
-                                      id: '',
-                                      name: 'Unknown',
-                                      description: '',
-                                      createdAt: DateTime.now(),
-                                    ),
-                                  );
-                                  return Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 6,
-                                      vertical: 2,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.blue[100],
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: Text(
-                                      group.name,
-                                      style: TextStyle(
-                                        color: Colors.blue[800],
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  );
-                                }).toList(),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                if (source.hasGroups)
+                  Consumer(
+                    builder: (context, ref, child) {
+                      final groupsAsync = ref.watch(groupProvider);
+                      return groupsAsync.when(
+                        data: (groups) {
+                          return Wrap(
+                            spacing: 4,
+                            runSpacing: 2,
+                            children: source.groupIds.map((groupId) {
+                              final group = groups.firstWhere(
+                                (g) => g.id == groupId,
+                                orElse: () => Group(
+                                  id: '',
+                                  name: 'Unknown',
+                                  description: '',
+                                  createdAt: DateTime.now(),
+                                ),
                               );
-                            },
-                            loading: () => const SizedBox.shrink(),
-                            error: (_, __) => const SizedBox.shrink(),
+                              return Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 3,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue[100],
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Text(
+                                  group.name,
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                              );
+                            }).toList(),
                           );
                         },
-                      ),
-                  ],
-                ),
-                if (source.notes?.isNotEmpty == true) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    source.notes!,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                        loading: () => const SizedBox.shrink(),
+                        error: (_, __) => const SizedBox.shrink(),
+                      );
+                    },
                   ),
-                ],
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 4,
-                  children: [
-                    Chip(
-                      label: Text(
-                        source.statusDisplayName,
-                        style: const TextStyle(fontSize: 12),
-                      ),
-                      backgroundColor: _getStatusColor(source.status),
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                    Chip(
-                      label: Text(
-                        source.typeDisplayName,
-                        style: const TextStyle(fontSize: 12),
-                      ),
-                      backgroundColor: _getTypeColor(
-                        source.type,
-                      ).withOpacity(0.2),
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                  ],
-                ),
               ],
             ),
             onTap: () {
@@ -357,21 +325,6 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
         );
       },
     );
-  }
-
-  Color _getStatusColor(SourceStatus status) {
-    switch (status) {
-      case SourceStatus.notStarted:
-        return Colors.grey[300]!;
-      case SourceStatus.inProgress:
-        return Colors.blue[200]!;
-      case SourceStatus.completed:
-        return Colors.green[200]!;
-      case SourceStatus.paused:
-        return Colors.orange[200]!;
-      case SourceStatus.abandoned:
-        return Colors.red[200]!;
-    }
   }
 
   Color _getTypeColor(SourceType type) {
