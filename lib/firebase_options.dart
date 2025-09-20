@@ -66,7 +66,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: 'your-sender-id',
     projectId: 'your-project-id',
     storageBucket: 'your-project-id.appspot.com',
-    iosBundleId: 'com.example.librisApp',
+    iosBundleId: 'com.limund.libris',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
@@ -75,6 +75,6 @@ class DefaultFirebaseOptions {
     messagingSenderId: 'your-sender-id',
     projectId: 'your-project-id',
     storageBucket: 'your-project-id.appspot.com',
-    iosBundleId: 'com.example.librisApp',
+    iosBundleId: 'com.limund.libris',
   );
 }

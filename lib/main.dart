@@ -18,7 +18,7 @@ class LibrisApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Libris - Book Tracker',
+      title: 'Libris',
       theme: ThemeData(
         primarySwatch: Colors.indigo,
         useMaterial3: true,
