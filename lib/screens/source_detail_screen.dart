@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../models/source.dart';
 import '../models/group.dart';
 import '../models/quote.dart';
@@ -34,7 +33,6 @@ class SourceDetailScreen extends ConsumerWidget {
                 '${source.typeIcon} ${source.typeDisplayName}',
               ),
               _buildInfoRow('Author/Creator', source.source),
-              if (source.hasUrl) _buildInfoRow('URL', source.url!, isUrl: true),
               _buildInfoRow(
                 'Status',
                 source.statusDisplayName,
@@ -135,12 +133,7 @@ class SourceDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildInfoRow(
-    String label,
-    String value, {
-    bool isUrl = false,
-    SourceStatus? status,
-  }) {
+  Widget _buildInfoRow(String label, String value, {SourceStatus? status}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
@@ -157,24 +150,13 @@ class SourceDetailScreen extends ConsumerWidget {
             ),
           ),
           Expanded(
-            child: isUrl
-                ? GestureDetector(
-                    onTap: () => _launchUrl(value),
-                    child: Text(
-                      value,
-                      style: const TextStyle(
-                        color: Colors.blue,
-                        decoration: TextDecoration.underline,
-                      ),
-                    ),
-                  )
-                : Text(
-                    value,
-                    style: TextStyle(
-                      color: status != null ? _getStatusColor(status) : null,
-                      fontWeight: status != null ? FontWeight.w500 : null,
-                    ),
-                  ),
+            child: Text(
+              value,
+              style: TextStyle(
+                color: status != null ? _getStatusColor(status) : null,
+                fontWeight: status != null ? FontWeight.w500 : null,
+              ),
+            ),
           ),
         ],
       ),
@@ -403,12 +385,5 @@ class SourceDetailScreen extends ConsumerWidget {
 
   String _formatDate(DateTime date) {
     return '${date.day}/${date.month}/${date.year}';
-  }
-
-  Future<void> _launchUrl(String url) async {
-    final Uri uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
-    }
   }
 }

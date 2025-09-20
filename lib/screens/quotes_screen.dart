@@ -21,9 +21,12 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
         title: const Text('Quotes'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.search),
+            icon: const Icon(Icons.add),
             onPressed: () {
-              _showSearchDialog();
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const AddQuoteScreen()),
+              );
             },
           ),
         ],
@@ -41,7 +44,7 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    searchQuery.isEmpty 
+                    searchQuery.isEmpty
                         ? 'Add your first quote to get started'
                         : 'Try a different search term',
                     style: const TextStyle(color: Colors.grey),
@@ -70,7 +73,7 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
                           ),
                         ),
                         const SizedBox(height: 12),
-                        
+
                         // Source info and page number
                         Row(
                           children: [
@@ -93,7 +96,7 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
                               ),
                           ],
                         ),
-                        
+
                         // Hashtags
                         if (quote.hashtags.isNotEmpty) ...[
                           const SizedBox(height: 8),
@@ -106,12 +109,13 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
                                   style: const TextStyle(fontSize: 12),
                                 ),
                                 backgroundColor: Colors.blue[100],
-                                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                materialTapTargetSize:
+                                    MaterialTapTargetSize.shrinkWrap,
                               );
                             }).toList(),
                           ),
                         ],
-                        
+
                         // Created date
                         const SizedBox(height: 8),
                         Text(
@@ -127,17 +131,6 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
                 );
               },
             ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const AddQuoteScreen(),
-            ),
-          );
-        },
-        child: const Icon(Icons.add),
-      ),
     );
   }
 
@@ -175,7 +168,7 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
   String _formatDate(DateTime date) {
     final now = DateTime.now();
     final difference = now.difference(date);
-    
+
     if (difference.inDays == 0) {
       return 'today';
     } else if (difference.inDays == 1) {
