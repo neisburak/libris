@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
+import '../models/quote.dart';
 import '../providers/quotation_provider.dart';
 import 'add_quote_screen.dart';
 
@@ -53,26 +55,49 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
               ),
             )
           : ListView.builder(
-              padding: const EdgeInsets.all(16),
               itemCount: quotesAsync.length,
               itemBuilder: (context, index) {
                 final quote = quotesAsync[index];
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
+                return Slidable(
+                  key: ValueKey(quote.id),
+                  endActionPane: ActionPane(
+                    motion: const ScrollMotion(),
+                    children: [
+                      SlidableAction(
+                        // An action can be bigger than the others.
+                        onPressed: (_) => _editQuote(quote),
+                        backgroundColor: Colors.green.shade600,
+                        foregroundColor: Colors.white,
+                        icon: Icons.edit,
+                        label: 'Update',
+                      ),
+                      SlidableAction(
+                        onPressed: (_) => _deleteQuote(quote),
+                        backgroundColor: Colors.red.shade600,
+                        foregroundColor: Colors.white,
+                        icon: Icons.delete,
+                        label: 'Delete',
+                      ),
+                    ],
+                  ),
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    title: Text(
+                      quote.quote,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontStyle: FontStyle.italic,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Quote content
-                        Text(
-                          quote.quote,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontStyle: FontStyle.italic,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 8),
 
                         // Source info and page number
                         Row(
@@ -83,15 +108,28 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
                                 style: TextStyle(
                                   color: Colors.grey[600],
                                   fontWeight: FontWeight.w500,
+                                  fontSize: 13,
                                 ),
                               ),
                             ),
                             if (quote.pageNumber != null)
-                              Text(
-                                'Page ${quote.pageNumber}',
-                                style: TextStyle(
-                                  color: Colors.grey[600],
-                                  fontSize: 12,
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue[50],
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: Colors.blue[200]!),
+                                ),
+                                child: Text(
+                                  'Page ${quote.pageNumber}',
+                                  style: TextStyle(
+                                    color: Colors.blue[700],
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
                               ),
                           ],
@@ -102,15 +140,19 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
                           const SizedBox(height: 8),
                           Wrap(
                             spacing: 4,
+                            runSpacing: 4,
                             children: quote.hashtags.map((tag) {
                               return Chip(
                                 label: Text(
                                   '#$tag',
-                                  style: const TextStyle(fontSize: 12),
+                                  style: const TextStyle(fontSize: 11),
                                 ),
                                 backgroundColor: Colors.blue[100],
                                 materialTapTargetSize:
                                     MaterialTapTargetSize.shrinkWrap,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                ),
                               );
                             }).toList(),
                           ),
@@ -122,11 +164,12 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
                           'Added ${_formatDate(quote.createdAt)}',
                           style: TextStyle(
                             color: Colors.grey[500],
-                            fontSize: 12,
+                            fontSize: 11,
                           ),
                         ),
                       ],
                     ),
+                    isThreeLine: true,
                   ),
                 );
               },
@@ -134,31 +177,52 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
     );
   }
 
-  void _showSearchDialog() {
+  void _editQuote(Quote quote) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => AddQuoteScreen(quote: quote)),
+    );
+  }
+
+  void _deleteQuote(Quote quote) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Search Quotes'),
-        content: TextField(
-          decoration: const InputDecoration(
-            hintText: 'Enter search term...',
-            prefixIcon: Icon(Icons.search),
-          ),
-          onChanged: (value) {
-            ref.read(quoteSearchProvider.notifier).state = value;
-          },
+        title: const Text('Delete Quote'),
+        content: Text(
+          'Are you sure you want to delete this quote?\n\n"${quote.quote.length > 100 ? '${quote.quote.substring(0, 100)}...' : quote.quote}"',
         ),
         actions: [
           TextButton(
-            onPressed: () {
-              ref.read(quoteSearchProvider.notifier).state = '';
-              Navigator.pop(context);
-            },
-            child: const Text('Clear'),
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
+            onPressed: () async {
+              Navigator.pop(context);
+              try {
+                await ref.read(quoteOperationsProvider).deleteQuote(quote.id);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Quote deleted successfully'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error deleting quote: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
           ),
         ],
       ),
