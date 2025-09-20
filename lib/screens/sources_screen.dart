@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../models/source.dart' as models;
+import 'package:flutter_slidable/flutter_slidable.dart';
+import '../models/source.dart';
 import '../models/group.dart';
 import '../providers/source_provider.dart';
 import '../providers/group_provider.dart';
@@ -61,9 +62,7 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          widget.groupId != null ? '$groupName Sources' : 'Sources',
-        ),
+        title: Text(widget.groupId != null ? '$groupName Sources' : 'Sources'),
         actions: [
           IconButton(
             icon: const Icon(Icons.search),
@@ -72,6 +71,21 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
           IconButton(
             icon: const Icon(Icons.filter_list),
             onPressed: _showFilterDialog,
+          ),
+          IconButton(
+            icon: const Icon(Icons.add),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => AddSourceScreen(
+                    groupId: _selectedGroupId.isNotEmpty
+                        ? _selectedGroupId
+                        : null,
+                  ),
+                ),
+              );
+            },
           ),
         ],
         bottom: TabBar(
@@ -93,35 +107,18 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
         controller: _tabController,
         children: [
           _buildSourcesList(_getFilteredSources()),
-          _buildSourcesList(_getFilteredSourcesByType(models.SourceType.book)),
-          _buildSourcesList(_getFilteredSourcesByType(models.SourceType.video)),
-          _buildSourcesList(
-            _getFilteredSourcesByType(models.SourceType.article),
-          ),
-          _buildSourcesList(
-            _getFilteredSourcesByType(models.SourceType.podcast),
-          ),
-          _buildSourcesList(
-            _getFilteredSourcesByType(models.SourceType.website),
-          ),
-          _buildSourcesList(_getFilteredSourcesByType(models.SourceType.other)),
+          _buildSourcesList(_getFilteredSourcesByType(SourceType.book)),
+          _buildSourcesList(_getFilteredSourcesByType(SourceType.video)),
+          _buildSourcesList(_getFilteredSourcesByType(SourceType.article)),
+          _buildSourcesList(_getFilteredSourcesByType(SourceType.podcast)),
+          _buildSourcesList(_getFilteredSourcesByType(SourceType.website)),
+          _buildSourcesList(_getFilteredSourcesByType(SourceType.other)),
         ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => AddSourceScreen(groupId: _selectedGroupId.isNotEmpty ? _selectedGroupId : null),
-            ),
-          );
-        },
-        child: const Icon(Icons.add),
       ),
     );
   }
 
-  List<models.Source> _getFilteredSources() {
+  List<Source> _getFilteredSources() {
     final sourcesAsync = ref.watch(sourceProvider);
     return sourcesAsync.when(
       data: (sources) {
@@ -152,7 +149,7 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
     );
   }
 
-  List<models.Source> _getFilteredSourcesByType(models.SourceType type) {
+  List<Source> _getFilteredSourcesByType(SourceType type) {
     final sourcesAsync = ref.watch(sourceProvider);
     return sourcesAsync.when(
       data: (sources) {
@@ -185,7 +182,7 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
     );
   }
 
-  Widget _buildSourcesList(List<models.Source> sources) {
+  Widget _buildSourcesList(List<Source> sources) {
     if (sources.isEmpty) {
       return Center(
         child: Column(
@@ -216,11 +213,27 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
       itemCount: sources.length,
       itemBuilder: (context, index) {
         final source = sources[index];
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          elevation: 2,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+        return Slidable(
+          key: ValueKey(source.id),
+          endActionPane: ActionPane(
+            motion: const ScrollMotion(),
+            children: [
+              SlidableAction(
+                // An action can be bigger than the others.
+                onPressed: (_) => _editSource(source),
+                backgroundColor: Colors.green.shade600,
+                foregroundColor: Colors.white,
+                icon: Icons.edit,
+                label: 'Update',
+              ),
+              SlidableAction(
+                onPressed: (_) => _deleteSource(source),
+                backgroundColor: Colors.red.shade600,
+                foregroundColor: Colors.white,
+                icon: Icons.delete,
+                label: 'Delete',
+              ),
+            ],
           ),
           child: ListTile(
             contentPadding: const EdgeInsets.all(16),
@@ -336,37 +349,6 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
                 ),
               ],
             ),
-            trailing: PopupMenuButton(
-              itemBuilder: (context) => [
-                const PopupMenuItem(
-                  value: 'edit',
-                  child: Row(
-                    children: [
-                      Icon(Icons.edit),
-                      SizedBox(width: 8),
-                      Text('Edit'),
-                    ],
-                  ),
-                ),
-                const PopupMenuItem(
-                  value: 'delete',
-                  child: Row(
-                    children: [
-                      Icon(Icons.delete, color: Colors.red),
-                      SizedBox(width: 8),
-                      Text('Delete', style: TextStyle(color: Colors.red)),
-                    ],
-                  ),
-                ),
-              ],
-              onSelected: (value) {
-                if (value == 'edit') {
-                  _editSource(source);
-                } else if (value == 'delete') {
-                  _deleteSource(source);
-                }
-              },
-            ),
             onTap: () {
               // Navigate to source details or quotes
               _navigateToSourceDetails(source);
@@ -377,34 +359,34 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
     );
   }
 
-  Color _getStatusColor(models.SourceStatus status) {
+  Color _getStatusColor(SourceStatus status) {
     switch (status) {
-      case models.SourceStatus.notStarted:
+      case SourceStatus.notStarted:
         return Colors.grey[300]!;
-      case models.SourceStatus.inProgress:
+      case SourceStatus.inProgress:
         return Colors.blue[200]!;
-      case models.SourceStatus.completed:
+      case SourceStatus.completed:
         return Colors.green[200]!;
-      case models.SourceStatus.paused:
+      case SourceStatus.paused:
         return Colors.orange[200]!;
-      case models.SourceStatus.abandoned:
+      case SourceStatus.abandoned:
         return Colors.red[200]!;
     }
   }
 
-  Color _getTypeColor(models.SourceType type) {
+  Color _getTypeColor(SourceType type) {
     switch (type) {
-      case models.SourceType.book:
+      case SourceType.book:
         return Colors.brown;
-      case models.SourceType.video:
+      case SourceType.video:
         return Colors.red;
-      case models.SourceType.article:
+      case SourceType.article:
         return Colors.blue;
-      case models.SourceType.podcast:
+      case SourceType.podcast:
         return Colors.purple;
-      case models.SourceType.website:
+      case SourceType.website:
         return Colors.green;
-      case models.SourceType.other:
+      case SourceType.other:
         return Colors.grey;
     }
   }
@@ -498,14 +480,14 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
     );
   }
 
-  void _editSource(models.Source source) {
+  void _editSource(Source source) {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => AddSourceScreen(source: source)),
     );
   }
 
-  void _deleteSource(models.Source source) {
+  void _deleteSource(Source source) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -531,7 +513,7 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
     );
   }
 
-  void _navigateToSourceDetails(models.Source source) {
+  void _navigateToSourceDetails(Source source) {
     // TODO: Navigate to source details or quotes screen
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Viewing details for "${source.title}"')),
