@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/source.dart' as models;
-import '../services/firebase_service.dart';
+import '../services/source_data_service.dart';
 
 class SourceNotifier extends StateNotifier<AsyncValue<List<models.Source>>> {
   SourceNotifier() : super(const AsyncValue.loading()) {
@@ -9,7 +9,7 @@ class SourceNotifier extends StateNotifier<AsyncValue<List<models.Source>>> {
 
   Future<void> _loadSources() async {
     try {
-      final sources = await FirebaseService.getSources().first;
+      final sources = await SourceDataService.getSources();
       state = AsyncValue.data(sources);
     } catch (e) {
       state = AsyncValue.error(e, StackTrace.current);
@@ -18,7 +18,7 @@ class SourceNotifier extends StateNotifier<AsyncValue<List<models.Source>>> {
 
   Future<void> addSource(models.Source source) async {
     try {
-      await FirebaseService.addSource(source);
+      await SourceDataService.addSource(source);
       await _loadSources();
     } catch (e) {
       state = AsyncValue.error(e, StackTrace.current);
@@ -27,7 +27,7 @@ class SourceNotifier extends StateNotifier<AsyncValue<List<models.Source>>> {
 
   Future<void> updateSource(models.Source source) async {
     try {
-      await FirebaseService.updateSource(source);
+      await SourceDataService.updateSource(source);
       await _loadSources();
     } catch (e) {
       state = AsyncValue.error(e, StackTrace.current);
@@ -36,7 +36,7 @@ class SourceNotifier extends StateNotifier<AsyncValue<List<models.Source>>> {
 
   Future<void> deleteSource(String sourceId) async {
     try {
-      await FirebaseService.deleteSource(sourceId);
+      await SourceDataService.deleteSource(sourceId);
       await _loadSources();
     } catch (e) {
       state = AsyncValue.error(e, StackTrace.current);
@@ -49,7 +49,8 @@ class SourceNotifier extends StateNotifier<AsyncValue<List<models.Source>>> {
 
   List<models.Source> getSourcesByType(models.SourceType type) {
     return state.when(
-      data: (sources) => sources.where((source) => source.type == type).toList(),
+      data: (sources) =>
+          sources.where((source) => source.type == type).toList(),
       loading: () => [],
       error: (_, __) => [],
     );
@@ -57,7 +58,8 @@ class SourceNotifier extends StateNotifier<AsyncValue<List<models.Source>>> {
 
   List<models.Source> getSourcesByGroup(String groupId) {
     return state.when(
-      data: (sources) => sources.where((source) => source.groupId == groupId).toList(),
+      data: (sources) =>
+          sources.where((source) => source.groupId == groupId).toList(),
       loading: () => [],
       error: (_, __) => [],
     );
@@ -65,7 +67,8 @@ class SourceNotifier extends StateNotifier<AsyncValue<List<models.Source>>> {
 
   List<models.Source> getSourcesByStatus(models.SourceStatus status) {
     return state.when(
-      data: (sources) => sources.where((source) => source.status == status).toList(),
+      data: (sources) =>
+          sources.where((source) => source.status == status).toList(),
       loading: () => [],
       error: (_, __) => [],
     );
@@ -85,15 +88,17 @@ class SourceNotifier extends StateNotifier<AsyncValue<List<models.Source>>> {
   }
 }
 
-final sourceProvider = StateNotifierProvider<SourceNotifier, AsyncValue<List<models.Source>>>(
-  (ref) => SourceNotifier(),
-);
+final sourceProvider =
+    StateNotifierProvider<SourceNotifier, AsyncValue<List<models.Source>>>(
+      (ref) => SourceNotifier(),
+    );
 
 // Filtered providers
 final bookSourcesProvider = Provider<List<models.Source>>((ref) {
   final sourceNotifier = ref.watch(sourceProvider);
   return sourceNotifier.when(
-    data: (sources) => sources.where((source) => source.type == models.SourceType.book).toList(),
+    data: (sources) =>
+        sources.where((source) => source.type == models.SourceType.book).toList(),
     loading: () => [],
     error: (_, __) => [],
   );
@@ -102,7 +107,8 @@ final bookSourcesProvider = Provider<List<models.Source>>((ref) {
 final videoSourcesProvider = Provider<List<models.Source>>((ref) {
   final sourceNotifier = ref.watch(sourceProvider);
   return sourceNotifier.when(
-    data: (sources) => sources.where((source) => source.type == models.SourceType.video).toList(),
+    data: (sources) =>
+        sources.where((source) => source.type == models.SourceType.video).toList(),
     loading: () => [],
     error: (_, __) => [],
   );
@@ -111,7 +117,8 @@ final videoSourcesProvider = Provider<List<models.Source>>((ref) {
 final articleSourcesProvider = Provider<List<models.Source>>((ref) {
   final sourceNotifier = ref.watch(sourceProvider);
   return sourceNotifier.when(
-    data: (sources) => sources.where((source) => source.type == models.SourceType.article).toList(),
+    data: (sources) =>
+        sources.where((source) => source.type == models.SourceType.article).toList(),
     loading: () => [],
     error: (_, __) => [],
   );
@@ -120,7 +127,8 @@ final articleSourcesProvider = Provider<List<models.Source>>((ref) {
 final podcastSourcesProvider = Provider<List<models.Source>>((ref) {
   final sourceNotifier = ref.watch(sourceProvider);
   return sourceNotifier.when(
-    data: (sources) => sources.where((source) => source.type == models.SourceType.podcast).toList(),
+    data: (sources) =>
+        sources.where((source) => source.type == models.SourceType.podcast).toList(),
     loading: () => [],
     error: (_, __) => [],
   );
@@ -132,11 +140,11 @@ final sourceSearchProvider = StateProvider<String>((ref) => '');
 final filteredSourcesProvider = Provider<List<models.Source>>((ref) {
   final searchQuery = ref.watch(sourceSearchProvider);
   final sourceNotifier = ref.watch(sourceProvider);
-  
+
   return sourceNotifier.when(
     data: (sources) {
       if (searchQuery.isEmpty) return sources;
-      
+
       final lowerQuery = searchQuery.toLowerCase();
       return sources.where((source) {
         return source.title.toLowerCase().contains(lowerQuery) ||

@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/group.dart';
-import '../services/firebase_service.dart';
+import '../services/group_data_service.dart';
 
 class GroupNotifier extends StateNotifier<AsyncValue<List<Group>>> {
   GroupNotifier() : super(const AsyncValue.loading()) {
@@ -10,7 +10,7 @@ class GroupNotifier extends StateNotifier<AsyncValue<List<Group>>> {
   Future<void> _loadGroups() async {
     try {
       state = const AsyncValue.loading();
-      final groups = await FirebaseService.getGroups();
+      final groups = await GroupDataService.getGroups();
       state = AsyncValue.data(groups);
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);
@@ -19,7 +19,7 @@ class GroupNotifier extends StateNotifier<AsyncValue<List<Group>>> {
 
   Future<void> addGroup(Group group) async {
     try {
-      await FirebaseService.addGroup(group);
+      await GroupDataService.addGroup(group);
       await _loadGroups();
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);
@@ -28,7 +28,7 @@ class GroupNotifier extends StateNotifier<AsyncValue<List<Group>>> {
 
   Future<void> updateGroup(Group group) async {
     try {
-      await FirebaseService.updateGroup(group);
+      await GroupDataService.updateGroup(group);
       await _loadGroups();
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);
@@ -37,7 +37,7 @@ class GroupNotifier extends StateNotifier<AsyncValue<List<Group>>> {
 
   Future<void> deleteGroup(String groupId) async {
     try {
-      await FirebaseService.deleteGroup(groupId);
+      await GroupDataService.deleteGroup(groupId);
       await _loadGroups();
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);
@@ -49,9 +49,10 @@ class GroupNotifier extends StateNotifier<AsyncValue<List<Group>>> {
   }
 }
 
-final groupProvider = StateNotifierProvider<GroupNotifier, AsyncValue<List<Group>>>(
-  (ref) => GroupNotifier(),
-);
+final groupProvider =
+    StateNotifierProvider<GroupNotifier, AsyncValue<List<Group>>>(
+      (ref) => GroupNotifier(),
+    );
 
 final groupSearchProvider = StateProvider<String>((ref) => '');
 
@@ -64,7 +65,7 @@ final filteredGroupsProvider = Provider<List<Group>>((ref) {
       if (searchQuery.isEmpty) return groups;
       return groups.where((group) {
         return group.name.toLowerCase().contains(searchQuery.toLowerCase()) ||
-               group.description.toLowerCase().contains(searchQuery.toLowerCase());
+            group.description.toLowerCase().contains(searchQuery.toLowerCase());
       }).toList();
     },
     loading: () => [],
