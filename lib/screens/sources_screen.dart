@@ -6,6 +6,7 @@ import '../models/group.dart';
 import '../providers/source_provider.dart';
 import '../providers/group_provider.dart';
 import 'add_source_screen.dart';
+import 'source_detail_screen.dart';
 
 class SourcesScreen extends ConsumerStatefulWidget {
   final String? groupId; // Optional filter by group
@@ -495,9 +496,11 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
   }
 
   void _navigateToSourceDetails(Source source) {
-    // TODO: Navigate to source details or quotes screen
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Viewing details for "${source.title}"')),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SourceDetailScreen(source: source),
+      ),
     );
   }
 }

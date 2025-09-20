@@ -36,7 +36,7 @@ class _AddSourceScreenState extends ConsumerState<AddSourceScreen> {
     if (widget.groupId != null) {
       _selectedGroupIds = [widget.groupId!];
     }
-    
+
     if (widget.source != null) {
       _titleController.text = widget.source!.title;
       _sourceController.text = widget.source!.source;
@@ -78,12 +78,11 @@ class _AddSourceScreenState extends ConsumerState<AddSourceScreen> {
             ),
         ],
       ),
-      body: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Form(
+          key: _formKey,
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // Group Selection
               Consumer(
@@ -132,18 +131,26 @@ class _AddSourceScreenState extends ConsumerState<AddSourceScreen> {
                                           _selectedGroupIds.remove(groupId);
                                         });
                                       },
-                                      deleteIcon: const Icon(Icons.close, size: 18),
+                                      deleteIcon: const Icon(
+                                        Icons.close,
+                                        size: 18,
+                                      ),
                                     );
                                   }).toList(),
                                 ),
                               const SizedBox(height: 8),
                               ElevatedButton.icon(
-                                onPressed: () => _showGroupSelectionDialog(groups),
+                                onPressed: () =>
+                                    _showGroupSelectionDialog(groups),
                                 icon: const Icon(Icons.add),
                                 label: const Text('Add Groups'),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
-                                  foregroundColor: Theme.of(context).primaryColor,
+                                  backgroundColor: Theme.of(
+                                    context,
+                                  ).primaryColor.withOpacity(0.1),
+                                  foregroundColor: Theme.of(
+                                    context,
+                                  ).primaryColor,
                                   elevation: 0,
                                 ),
                               ),
@@ -171,10 +178,13 @@ class _AddSourceScreenState extends ConsumerState<AddSourceScreen> {
                   return DropdownMenuItem<models.SourceType>(
                     value: type,
                     child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(_getTypeIcon(type)),
                         const SizedBox(width: 8),
-                        Text(_getTypeDisplayName(type)),
+                        Expanded(
+                          child: Text(_getTypeDisplayName(type)),
+                        ),
                       ],
                     ),
                   );
@@ -237,7 +247,8 @@ class _AddSourceScreenState extends ConsumerState<AddSourceScreen> {
                   ),
                   keyboardType: TextInputType.url,
                 ),
-              if (_selectedType != models.SourceType.book) const SizedBox(height: 16),
+              if (_selectedType != models.SourceType.book)
+                const SizedBox(height: 16),
 
               // Status
               DropdownButtonFormField<models.SourceStatus>(
@@ -264,9 +275,11 @@ class _AddSourceScreenState extends ConsumerState<AddSourceScreen> {
               // Start Date
               ListTile(
                 title: const Text('Start Date'),
-                subtitle: Text(_startDate != null 
-                    ? '${_startDate!.day}/${_startDate!.month}/${_startDate!.year}'
-                    : 'Not set'),
+                subtitle: Text(
+                  _startDate != null
+                      ? '${_startDate!.day}/${_startDate!.month}/${_startDate!.year}'
+                      : 'Not set',
+                ),
                 trailing: const Icon(Icons.calendar_today),
                 onTap: () async {
                   final date = await showDatePicker(
@@ -286,9 +299,11 @@ class _AddSourceScreenState extends ConsumerState<AddSourceScreen> {
               // Finish Date
               ListTile(
                 title: const Text('Finish Date'),
-                subtitle: Text(_finishDate != null 
-                    ? '${_finishDate!.day}/${_finishDate!.month}/${_finishDate!.year}'
-                    : 'Not set'),
+                subtitle: Text(
+                  _finishDate != null
+                      ? '${_finishDate!.day}/${_finishDate!.month}/${_finishDate!.year}'
+                      : 'Not set',
+                ),
                 trailing: const Icon(Icons.calendar_today),
                 onTap: () async {
                   final date = await showDatePicker(
@@ -435,8 +450,12 @@ class _AddSourceScreenState extends ConsumerState<AddSourceScreen> {
         type: _selectedType,
         title: _titleController.text.trim(),
         source: _sourceController.text.trim(),
-        url: _urlController.text.trim().isEmpty ? null : _urlController.text.trim(),
-        notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
+        url: _urlController.text.trim().isEmpty
+            ? null
+            : _urlController.text.trim(),
+        notes: _notesController.text.trim().isEmpty
+            ? null
+            : _notesController.text.trim(),
         status: _selectedStatus,
         startDate: _startDate,
         finishDate: _finishDate,
@@ -454,7 +473,9 @@ class _AddSourceScreenState extends ConsumerState<AddSourceScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              widget.source != null ? 'Source updated successfully' : 'Source created successfully',
+              widget.source != null
+                  ? 'Source updated successfully'
+                  : 'Source created successfully',
             ),
           ),
         );
@@ -462,10 +483,7 @@ class _AddSourceScreenState extends ConsumerState<AddSourceScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -490,11 +508,15 @@ class _AddSourceScreenState extends ConsumerState<AddSourceScreen> {
             itemBuilder: (context, index) {
               final group = groups[index];
               final isSelected = _selectedGroupIds.contains(group.id);
-              
+
               return CheckboxListTile(
                 title: Text(group.name),
-                subtitle: group.description.isNotEmpty 
-                    ? Text(group.description, maxLines: 1, overflow: TextOverflow.ellipsis)
+                subtitle: group.description.isNotEmpty
+                    ? Text(
+                        group.description,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      )
                     : null,
                 value: isSelected,
                 onChanged: (value) {

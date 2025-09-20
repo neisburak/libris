@@ -86,10 +86,11 @@ class _AddQuoteScreenState extends ConsumerState<AddQuoteScreen> {
                         return DropdownMenuItem<models.Source>(
                           value: source,
                           child: Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(source.typeIcon),
                               const SizedBox(width: 8),
-                              Expanded(child: Text(source.title)),
+                              Flexible(child: Text(source.title)),
                             ],
                           ),
                         );
