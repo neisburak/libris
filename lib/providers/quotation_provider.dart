@@ -50,10 +50,51 @@ final allHashtagsProvider = FutureProvider<List<String>>((ref) {
   return QuoteDataService.getAllHashtags();
 });
 
+// Random quote provider
+final randomQuoteProvider = Provider<Quote?>((ref) {
+  final quotes = ref.watch(filteredQuotesProvider);
+  
+  if (quotes.isEmpty) return null;
+  
+  // Get a random quote from the list
+  final random = DateTime.now().millisecondsSinceEpoch % quotes.length;
+  return quotes[random];
+});
+
+// Random quote with refresh capability
+final randomQuoteWithRefreshProvider = StateNotifierProvider<RandomQuoteNotifier, Quote?>((ref) {
+  return RandomQuoteNotifier(ref);
+});
+
 // Quote operations provider
 final quoteOperationsProvider = Provider<QuoteOperations>((ref) {
   return QuoteOperations();
 });
+
+class RandomQuoteNotifier extends StateNotifier<Quote?> {
+  final Ref _ref;
+  
+  RandomQuoteNotifier(this._ref) : super(null) {
+    _loadRandomQuote();
+  }
+  
+  void _loadRandomQuote() {
+    final quotes = _ref.read(filteredQuotesProvider);
+    
+    if (quotes.isEmpty) {
+      state = null;
+      return;
+    }
+    
+    // Get a random quote from the list
+    final random = DateTime.now().millisecondsSinceEpoch % quotes.length;
+    state = quotes[random];
+  }
+  
+  void refreshRandomQuote() {
+    _loadRandomQuote();
+  }
+}
 
 class QuoteOperations {
   Future<String> addQuote(Quote quote) async {

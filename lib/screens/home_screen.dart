@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../providers/random_quote_provider.dart';
+import '../providers/quotation_provider.dart';
 import 'quotes/quotes_screen.dart';
 import 'search_screen.dart';
 import 'settings_screen.dart';
