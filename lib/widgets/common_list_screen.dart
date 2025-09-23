@@ -45,11 +45,46 @@ class CommonListScreen<T> extends ConsumerStatefulWidget {
 
 class _CommonListScreenState<T> extends ConsumerState<CommonListScreen<T>> {
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+  bool _showSearchAtTop = false;
+  double _lastScrollPosition = 0.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  void _onScroll() {
+    if (!widget.showSearch || widget.items.isEmpty) return;
+    
+    final currentPosition = _scrollController.position.pixels;
+    final isScrollingUp = currentPosition < _lastScrollPosition;
+    
+    // Show search bar when scrolling up
+    if (isScrollingUp && currentPosition > 50) {
+      if (!_showSearchAtTop) {
+        setState(() {
+          _showSearchAtTop = true;
+        });
+      }
+    } else if (!isScrollingUp && currentPosition > 100) {
+      // Hide search bar when scrolling down and past 100px
+      if (_showSearchAtTop) {
+        setState(() {
+          _showSearchAtTop = false;
+        });
+      }
+    }
+    
+    _lastScrollPosition = currentPosition;
   }
 
   @override
@@ -77,8 +112,8 @@ class _CommonListScreenState<T> extends ConsumerState<CommonListScreen<T>> {
       ),
       body: Column(
         children: [
-          // Search Input - Always visible when there are items
-          if (widget.showSearch && widget.items.isNotEmpty)
+          // Search Input - Show at top when scrolling up or when there are no items
+          if (widget.showSearch && (widget.items.isEmpty || _showSearchAtTop))
             Container(
               padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
@@ -123,7 +158,7 @@ class _CommonListScreenState<T> extends ConsumerState<CommonListScreen<T>> {
                     },
                   ),
             ),
-          // Items List
+          // Items List - Always scrollable when there are items
           Expanded(
             child: widget.items.isEmpty
                 ? Center(
@@ -156,7 +191,9 @@ class _CommonListScreenState<T> extends ConsumerState<CommonListScreen<T>> {
                     ),
                   )
                 : ListView.builder(
+                    controller: _scrollController,
                     itemCount: widget.items.length,
+                    physics: const AlwaysScrollableScrollPhysics(),
                     itemBuilder: (context, index) {
                       final item = widget.items[index];
                       return widget.itemBuilder(item);

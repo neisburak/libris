@@ -22,20 +22,57 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
   String _selectedGroupId = '';
+  bool _showSearchAtTop = false;
+  double _lastScrollPosition = 0.0;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 7, vsync: this);
     _selectedGroupId = widget.groupId ?? '';
+    _scrollController.addListener(_onScroll);
   }
 
   @override
   void dispose() {
     _tabController.dispose();
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  void _onScroll() {
+    final sourcesAsync = ref.read(sourceProvider);
+    final hasItems = sourcesAsync.when(
+      data: (sources) => sources.isNotEmpty,
+      loading: () => false,
+      error: (_, __) => false,
+    );
+    
+    if (!hasItems) return;
+    
+    final currentPosition = _scrollController.position.pixels;
+    final isScrollingUp = currentPosition < _lastScrollPosition;
+    
+    // Show search bar when scrolling up
+    if (isScrollingUp && currentPosition > 50) {
+      if (!_showSearchAtTop) {
+        setState(() {
+          _showSearchAtTop = true;
+        });
+      }
+    } else if (!isScrollingUp && currentPosition > 100) {
+      // Hide search bar when scrolling down and past 100px
+      if (_showSearchAtTop) {
+        setState(() {
+          _showSearchAtTop = false;
+        });
+      }
+    }
+    
+    _lastScrollPosition = currentPosition;
   }
 
   @override
@@ -113,9 +150,9 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
       ),
       body: Column(
         children: [
-          // Search Input - Always visible when there are sources
+          // Search Input - Show when scrolling up or when there are no sources
           if (sourcesAsync.when(
-            data: (sources) => sources.isNotEmpty,
+            data: (sources) => sources.isEmpty || _showSearchAtTop,
             loading: () => false,
             error: (_, __) => false,
           ))
@@ -281,6 +318,7 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
     }
 
     return ListView.builder(
+      controller: _scrollController,
       itemCount: sources.length,
       itemBuilder: (context, index) {
         final source = sources[index];

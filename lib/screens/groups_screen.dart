@@ -37,7 +37,7 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen> {
       searchEmptySubtitle: 'Try a different search term',
       emptyStateIcon: Icons.folder_outlined,
       items: groupsAsync,
-      showSearch: groupsAsync.isNotEmpty,
+      showSearch: true,
       searchWidget: TextField(
         controller: _searchController,
         decoration: InputDecoration(
