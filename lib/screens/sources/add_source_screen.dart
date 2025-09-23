@@ -183,7 +183,7 @@ class _AddSourceScreenState extends ConsumerState<AddSourceScreen> {
                       children: [
                         Text(_getTypeIcon(type)),
                         const SizedBox(width: 8),
-                        Expanded(
+                        Flexible(
                           child: Text(_getTypeDisplayName(type)),
                         ),
                       ],
