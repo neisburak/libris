@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_slidable/flutter_slidable.dart';
 import '../models/source.dart';
 import '../models/group.dart';
 import '../providers/source_provider.dart';
 import '../providers/group_provider.dart';
+import '../widgets/source_list_item.dart';
 import 'add_source_screen.dart';
 import 'source_detail_screen.dart';
 import 'settings_screen.dart';
@@ -284,136 +284,16 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
       itemCount: sources.length,
       itemBuilder: (context, index) {
         final source = sources[index];
-        return Slidable(
-          key: ValueKey(source.id),
-          endActionPane: ActionPane(
-            motion: const ScrollMotion(),
-            children: [
-              SlidableAction(
-                // An action can be bigger than the others.
-                onPressed: (_) => _editSource(source),
-                backgroundColor: Colors.green.shade600,
-                foregroundColor: Colors.white,
-                icon: Icons.edit,
-                label: 'Update',
-              ),
-              SlidableAction(
-                onPressed: (_) => _deleteSource(source),
-                backgroundColor: Colors.red.shade600,
-                foregroundColor: Colors.white,
-                icon: Icons.delete,
-                label: 'Delete',
-              ),
-            ],
-          ),
-          child: ListTile(
-            contentPadding: const EdgeInsets.all(16),
-            title: Row(
-              children: [
-                Text(
-                  source.title,
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: _getTypeColor(source.type).withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    source.typeDisplayName,
-                    style: const TextStyle(fontSize: 12),
-                  ),
-                ),
-              ],
-            ),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        source.source,
-                        style: TextStyle(color: Colors.grey[600], fontSize: 14),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                if (source.hasGroups)
-                  Consumer(
-                    builder: (context, ref, child) {
-                      final groupsAsync = ref.watch(groupProvider);
-                      return groupsAsync.when(
-                        data: (groups) {
-                          return Wrap(
-                            spacing: 4,
-                            runSpacing: 2,
-                            children: source.groupIds.map((groupId) {
-                              final group = groups.firstWhere(
-                                (g) => g.id == groupId,
-                                orElse: () => Group(
-                                  id: '',
-                                  name: 'Unknown',
-                                  description: '',
-                                  createdAt: DateTime.now(),
-                                ),
-                              );
-                              return Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 3,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.blue[100],
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Text(
-                                  group.name,
-                                  style: const TextStyle(fontSize: 12),
-                                ),
-                              );
-                            }).toList(),
-                          );
-                        },
-                        loading: () => const SizedBox.shrink(),
-                        error: (_, __) => const SizedBox.shrink(),
-                      );
-                    },
-                  ),
-              ],
-            ),
-            onTap: () {
-              // Navigate to source details or quotes
-              _navigateToSourceDetails(source);
-            },
-          ),
+        return SourceListItem(
+          source: source,
+          onTap: () => _navigateToSourceDetails(source),
+          onEdit: () => _editSource(source),
+          onDelete: () => _deleteSource(source),
         );
       },
     );
   }
 
-  Color _getTypeColor(SourceType type) {
-    switch (type) {
-      case SourceType.book:
-        return Colors.brown;
-      case SourceType.video:
-        return Colors.red;
-      case SourceType.article:
-        return Colors.blue;
-      case SourceType.podcast:
-        return Colors.purple;
-      case SourceType.website:
-        return Colors.green;
-      case SourceType.other:
-        return Colors.grey;
-    }
-  }
 
 
   void _showFilterDialog() {

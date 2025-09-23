@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_slidable/flutter_slidable.dart';
 import '../models/quote.dart';
 import '../providers/quotation_provider.dart';
+import '../widgets/common_list_screen.dart';
+import '../widgets/quote_list_item.dart';
 import 'add_quote_screen.dart';
 import 'settings_screen.dart';
 
@@ -17,170 +18,34 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
   @override
   Widget build(BuildContext context) {
     final quotesAsync = ref.watch(filteredQuotesProvider);
-    final searchQuery = ref.watch(quoteSearchProvider);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Quotes'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const AddQuoteScreen()),
-              );
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const SettingsScreen()),
-              );
-            },
-          ),
-        ],
+    return CommonListScreen<Quote>(
+      title: 'Quotes',
+      searchHint: 'Search quotes...',
+      emptyStateTitle: 'No quotes yet',
+      emptyStateSubtitle: 'Add your first quote to get started',
+      searchEmptyTitle: 'No quotes found',
+      searchEmptySubtitle: 'Try a different search term',
+      emptyStateIcon: Icons.format_quote,
+      items: quotesAsync,
+      showSearch: quotesAsync.isNotEmpty,
+      itemBuilder: (quote) => QuoteListItem(
+        quote: quote,
+        onEdit: () => _editQuote(quote),
+        onDelete: () => _deleteQuote(quote),
       ),
-      body: quotesAsync.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.format_quote, size: 64, color: Colors.grey),
-                  const SizedBox(height: 16),
-                  Text(
-                    searchQuery.isEmpty ? 'No quotes yet' : 'No quotes found',
-                    style: const TextStyle(fontSize: 18, color: Colors.grey),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    searchQuery.isEmpty
-                        ? 'Add your first quote to get started'
-                        : 'Try a different search term',
-                    style: const TextStyle(color: Colors.grey),
-                  ),
-                ],
-              ),
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: quotesAsync.length,
-              itemBuilder: (context, index) {
-                final quote = quotesAsync[index];
-                return Slidable(
-                  key: ValueKey(quote.id),
-                  endActionPane: ActionPane(
-                    motion: const ScrollMotion(),
-                    children: [
-                      SlidableAction(
-                        // An action can be bigger than the others.
-                        onPressed: (_) => _editQuote(quote),
-                        backgroundColor: Colors.green.shade600,
-                        foregroundColor: Colors.white,
-                        icon: Icons.edit,
-                        label: 'Update',
-                      ),
-                      SlidableAction(
-                        onPressed: (_) => _deleteQuote(quote),
-                        backgroundColor: Colors.red.shade600,
-                        foregroundColor: Colors.white,
-                        icon: Icons.delete,
-                        label: 'Delete',
-                      ),
-                    ],
-                  ),
-                  child: ListTile(
-                    title: Text(
-                      quote.quote,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontStyle: FontStyle.italic,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 8),
-
-                        // Source info and page number
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                '— Source ID: ${quote.sourceId}',
-                                style: TextStyle(
-                                  color: Colors.grey[600],
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ),
-                            if (quote.pageNumber != null)
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.blue[50],
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: Colors.blue[200]!),
-                                ),
-                                child: Text(
-                                  'Page ${quote.pageNumber}',
-                                  style: TextStyle(
-                                    color: Colors.blue[700],
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-
-                        // Hashtags
-                        if (quote.hashtags.isNotEmpty) ...[
-                          const SizedBox(height: 8),
-                          Wrap(
-                            spacing: 4,
-                            runSpacing: 4,
-                            children: quote.hashtags.map((tag) {
-                              return Chip(
-                                label: Text(
-                                  '#$tag',
-                                  style: const TextStyle(fontSize: 11),
-                                ),
-                                backgroundColor: Colors.blue[100],
-                                materialTapTargetSize:
-                                    MaterialTapTargetSize.shrinkWrap,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                ),
-                              );
-                            }).toList(),
-                          ),
-                        ],
-
-                        // Created date
-                        const SizedBox(height: 8),
-                        Text(
-                          'Added ${_formatDate(quote.createdAt)}',
-                          style: TextStyle(
-                            color: Colors.grey[500],
-                            fontSize: 11,
-                          ),
-                        ),
-                      ],
-                    ),
-                    isThreeLine: true,
-                  ),
-                );
-              },
-            ),
+      onAddPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const AddQuoteScreen()),
+        );
+      },
+      onSettingsPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const SettingsScreen()),
+        );
+      },
     );
   }
 
@@ -236,18 +101,4 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
     );
   }
 
-  String _formatDate(DateTime date) {
-    final now = DateTime.now();
-    final difference = now.difference(date);
-
-    if (difference.inDays == 0) {
-      return 'today';
-    } else if (difference.inDays == 1) {
-      return 'yesterday';
-    } else if (difference.inDays < 7) {
-      return '${difference.inDays} days ago';
-    } else {
-      return '${date.day}/${date.month}/${date.year}';
-    }
-  }
 }
