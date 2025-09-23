@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../models/quote.dart';
-import 'common_list_screen.dart';
+import '../../models/quote.dart';
+import '../../widgets/common_list_screen.dart';
 
 class QuoteListItem extends StatelessWidget {
   final Quote quote;

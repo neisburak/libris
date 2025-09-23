@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
-import '../models/group.dart';
-import '../providers/group_provider.dart';
+import '../../models/group.dart';
+import '../../providers/group_provider.dart';
 
 class AddGroupScreen extends ConsumerStatefulWidget {
   final Group? group; // For editing existing group

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../models/group.dart';
-import 'common_list_screen.dart';
+import '../../models/group.dart';
+import '../../widgets/common_list_screen.dart';
 
 class GroupListItem extends StatelessWidget {
   final Group group;

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/random_quote_provider.dart';
-import 'quotes_screen.dart';
+import 'quotes/quotes_screen.dart';
 import 'search_screen.dart';
 import 'settings_screen.dart';
 
@@ -215,6 +215,24 @@ class HomeContent extends ConsumerWidget {
                       ),
                     ],
                   ],
+                ),
+              ),
+              // View All Quotes Button
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const QuotesScreen()),
+                    );
+                  },
+                  icon: const Icon(Icons.format_quote),
+                  label: const Text('View All Quotes'),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
                 ),
               ),
             ] else ...[

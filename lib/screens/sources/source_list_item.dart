@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../models/source.dart';
-import '../models/group.dart';
-import '../providers/group_provider.dart';
-import 'common_list_screen.dart';
+import '../../models/source.dart';
+import '../../models/group.dart';
+import '../../providers/group_provider.dart';
+import '../../widgets/common_list_screen.dart';
 
 class SourceListItem extends ConsumerWidget {
   final Source source;

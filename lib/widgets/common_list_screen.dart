@@ -15,8 +15,10 @@ class CommonListScreen<T> extends ConsumerStatefulWidget {
   final bool showSearch;
   final Widget Function(T item) itemBuilder;
   final VoidCallback? onAddPressed;
+  final VoidCallback? onSettingsPressed;
   final VoidCallback? onFilterPressed;
   final Widget? searchWidget;
+  final List<Widget>? customActions;
 
   const CommonListScreen({
     super.key,
@@ -31,8 +33,10 @@ class CommonListScreen<T> extends ConsumerStatefulWidget {
     required this.itemBuilder,
     this.showSearch = true,
     this.onAddPressed,
+    this.onSettingsPressed,
     this.onFilterPressed,
     this.searchWidget,
+    this.customActions,
   });
 
   @override
@@ -90,6 +94,9 @@ class _CommonListScreenState<T> extends ConsumerState<CommonListScreen<T>> {
       appBar: AppBar(
         title: Text(widget.title),
         actions: [
+          // Custom actions first
+          if (widget.customActions != null) ...widget.customActions!,
+          // Standard actions
           if (widget.onFilterPressed != null)
             IconButton(
               icon: const Icon(Icons.filter_list),
@@ -99,6 +106,11 @@ class _CommonListScreenState<T> extends ConsumerState<CommonListScreen<T>> {
             IconButton(
               icon: const Icon(Icons.add),
               onPressed: widget.onAddPressed,
+            ),
+          if (widget.onSettingsPressed != null)
+            IconButton(
+              icon: const Icon(Icons.settings),
+              onPressed: widget.onSettingsPressed,
             ),
         ],
       ),

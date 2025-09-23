@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../models/source.dart';
-import '../models/group.dart';
-import '../providers/source_provider.dart';
-import '../providers/group_provider.dart';
-import '../widgets/source_list_item.dart';
+import '../../models/source.dart';
+import '../../models/group.dart';
+import '../../providers/source_provider.dart';
+import '../../providers/group_provider.dart';
+import 'source_list_item.dart';
 import 'add_source_screen.dart';
 import 'source_detail_screen.dart';
 
@@ -85,33 +85,8 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
             },
           ),
         ],
-        bottom: TabBar(
-          controller: _tabController,
-          isScrollable: true,
-          tabs: const [
-            Tab(text: 'All'),
-            Tab(text: '📖 Books'),
-            Tab(text: '🎥 Videos'),
-            Tab(text: '📄 Articles'),
-            Tab(text: '🎧 Podcasts'),
-            Tab(text: '🌐 Websites'),
-            Tab(text: '📝 Other'),
-          ],
-          indicatorSize: TabBarIndicatorSize.tab,
-        ),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildSourcesList(_getFilteredSources()),
-          _buildSourcesList(_getFilteredSourcesByType(SourceType.book)),
-          _buildSourcesList(_getFilteredSourcesByType(SourceType.video)),
-          _buildSourcesList(_getFilteredSourcesByType(SourceType.article)),
-          _buildSourcesList(_getFilteredSourcesByType(SourceType.podcast)),
-          _buildSourcesList(_getFilteredSourcesByType(SourceType.website)),
-          _buildSourcesList(_getFilteredSourcesByType(SourceType.other)),
-        ],
-      ),
+      body: _buildSourcesList(_getFilteredSources()),
     );
   }
 
@@ -120,39 +95,6 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
     return sourcesAsync.when(
       data: (sources) {
         var filteredSources = sources;
-
-        // Filter by group if selected
-        if (_selectedGroupId.isNotEmpty) {
-          filteredSources = filteredSources
-              .where((source) => source.isInGroup(_selectedGroupId))
-              .toList();
-        }
-
-        // Filter by search query
-        final searchQuery = ref.watch(sourceSearchProvider);
-        if (searchQuery.isNotEmpty) {
-          filteredSources = filteredSources.where((source) {
-            final lowerQuery = searchQuery.toLowerCase();
-            return source.title.toLowerCase().contains(lowerQuery) ||
-                source.source.toLowerCase().contains(lowerQuery) ||
-                (source.notes?.toLowerCase().contains(lowerQuery) ?? false);
-          }).toList();
-        }
-
-        return filteredSources;
-      },
-      loading: () => [],
-      error: (_, __) => [],
-    );
-  }
-
-  List<Source> _getFilteredSourcesByType(SourceType type) {
-    final sourcesAsync = ref.watch(sourceProvider);
-    return sourcesAsync.when(
-      data: (sources) {
-        var filteredSources = sources
-            .where((source) => source.type == type)
-            .toList();
 
         // Filter by group if selected
         if (_selectedGroupId.isNotEmpty) {
@@ -191,8 +133,8 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
               ref.watch(sourceSearchProvider).isNotEmpty
                   ? 'No sources found'
                   : widget.groupId != null
-                      ? 'No sources in this group'
-                      : 'No sources found',
+                  ? 'No sources in this group'
+                  : 'No sources found',
               style: const TextStyle(fontSize: 18, color: Colors.grey),
             ),
             const SizedBox(height: 8),
@@ -200,8 +142,8 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
               ref.watch(sourceSearchProvider).isNotEmpty
                   ? 'Try a different search term'
                   : widget.groupId != null
-                      ? 'Add sources to this group to get started'
-                      : 'Add your first source to get started',
+                  ? 'Add sources to this group to get started'
+                  : 'Add your first source to get started',
               style: const TextStyle(color: Colors.grey),
             ),
           ],

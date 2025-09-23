@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../models/quote.dart';
-import '../providers/quotation_provider.dart';
-import '../widgets/common_list_screen.dart';
-import '../widgets/quote_list_item.dart';
+import '../../models/quote.dart';
+import '../../providers/quotation_provider.dart';
+import '../../widgets/common_list_screen.dart';
+import 'quote_list_item.dart';
 import 'add_quote_screen.dart';
-import 'sources_screen.dart';
+import '../groups/groups_screen.dart';
+import '../sources/sources_screen.dart';
 
 class QuotesScreen extends ConsumerStatefulWidget {
   const QuotesScreen({super.key});
@@ -76,17 +77,32 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
         onEdit: () => _editQuote(context, quote),
         onDelete: () => _deleteQuote(context, ref, quote),
       ),
+      customActions: [
+        IconButton(
+          icon: const Icon(Icons.folder),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const GroupsScreen()),
+            );
+          },
+          tooltip: 'Groups',
+        ),
+        IconButton(
+          icon: const Icon(Icons.library_books),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const SourcesScreen()),
+            );
+          },
+          tooltip: 'Sources',
+        ),
+      ],
       onAddPressed: () {
         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => const AddQuoteScreen()),
-        );
-      },
-      onFilterPressed: () {
-        // Navigate to Sources
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const SourcesScreen()),
         );
       },
     );

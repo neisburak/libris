@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
-import '../models/source.dart' as models;
-import '../models/group.dart';
-import '../providers/source_provider.dart';
-import '../providers/group_provider.dart';
+import '../../models/source.dart' as models;
+import '../../models/group.dart';
+import '../../providers/source_provider.dart';
+import '../../providers/group_provider.dart';
 
 class AddSourceScreen extends ConsumerStatefulWidget {
   final models.Source? source; // For editing existing source
@@ -83,6 +83,7 @@ class _AddSourceScreenState extends ConsumerState<AddSourceScreen> {
         child: Form(
           key: _formKey,
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
               // Group Selection
               Consumer(

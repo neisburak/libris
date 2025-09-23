@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
-import '../models/quote.dart';
-import '../models/source.dart' as models;
-import '../providers/quotation_provider.dart';
-import '../providers/source_provider.dart';
+import '../../models/quote.dart';
+import '../../models/source.dart' as models;
+import '../../providers/quotation_provider.dart';
+import '../../providers/source_provider.dart';
 
 class AddQuoteScreen extends ConsumerStatefulWidget {
   final Quote? quote; // For editing existing quote

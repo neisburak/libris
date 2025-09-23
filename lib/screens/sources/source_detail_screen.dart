@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../models/source.dart';
-import '../models/group.dart';
-import '../models/quote.dart';
-import '../providers/group_provider.dart';
-import '../providers/quote_provider.dart';
+import '../../models/source.dart';
+import '../../models/group.dart';
+import '../../models/quote.dart';
+import '../../providers/group_provider.dart';
+import '../../providers/quote_provider.dart';
 
 class SourceDetailScreen extends ConsumerWidget {
   final Source source;

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../models/group.dart';
-import '../providers/group_provider.dart';
-import '../widgets/common_list_screen.dart';
-import '../widgets/group_list_item.dart';
+import '../../models/group.dart';
+import '../../providers/group_provider.dart';
+import '../../widgets/common_list_screen.dart';
+import 'group_list_item.dart';
 import 'add_group_screen.dart';
-import 'sources_screen.dart';
+import '../sources/sources_screen.dart';
 
 class GroupsScreen extends ConsumerStatefulWidget {
   const GroupsScreen({super.key});
