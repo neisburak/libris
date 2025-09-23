@@ -7,7 +7,6 @@ import '../providers/group_provider.dart';
 import '../widgets/source_list_item.dart';
 import 'add_source_screen.dart';
 import 'source_detail_screen.dart';
-import 'settings_screen.dart';
 
 class SourcesScreen extends ConsumerStatefulWidget {
   final String? groupId; // Optional filter by group
@@ -22,63 +21,25 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
-  final ScrollController _scrollController = ScrollController();
   String _selectedGroupId = '';
-  bool _showSearchAtTop = false;
-  double _lastScrollPosition = 0.0;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 7, vsync: this);
     _selectedGroupId = widget.groupId ?? '';
-    _scrollController.addListener(_onScroll);
   }
 
   @override
   void dispose() {
     _tabController.dispose();
     _searchController.dispose();
-    _scrollController.dispose();
     super.dispose();
-  }
-
-  void _onScroll() {
-    final sourcesAsync = ref.read(sourceProvider);
-    final hasItems = sourcesAsync.when(
-      data: (sources) => sources.isNotEmpty,
-      loading: () => false,
-      error: (_, __) => false,
-    );
-    
-    if (!hasItems) return;
-    
-    final currentPosition = _scrollController.position.pixels;
-    final isScrollingUp = currentPosition < _lastScrollPosition;
-    
-    // Show search bar when scrolling up
-    if (isScrollingUp && currentPosition > 50) {
-      if (!_showSearchAtTop) {
-        setState(() {
-          _showSearchAtTop = true;
-        });
-      }
-    } else if (!isScrollingUp && currentPosition > 100) {
-      // Hide search bar when scrolling down and past 100px
-      if (_showSearchAtTop) {
-        setState(() {
-          _showSearchAtTop = false;
-        });
-      }
-    }
-    
-    _lastScrollPosition = currentPosition;
   }
 
   @override
   Widget build(BuildContext context) {
     final groupsAsync = ref.watch(groupProvider);
-    final sourcesAsync = ref.watch(sourceProvider);
     String groupName = '';
 
     if (widget.groupId != null) {
@@ -123,15 +84,6 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
               );
             },
           ),
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const SettingsScreen()),
-              );
-            },
-          ),
         ],
         bottom: TabBar(
           controller: _tabController,
@@ -148,76 +100,16 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
           indicatorSize: TabBarIndicatorSize.tab,
         ),
       ),
-      body: Column(
+      body: TabBarView(
+        controller: _tabController,
         children: [
-          // Search Input - Show when scrolling up or when there are no sources
-          if (sourcesAsync.when(
-            data: (sources) => sources.isEmpty || _showSearchAtTop,
-            loading: () => false,
-            error: (_, __) => false,
-          ))
-            Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: Theme.of(context).cardColor,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: TextField(
-                controller: _searchController,
-                decoration: InputDecoration(
-                  contentPadding: const EdgeInsets.all(8),
-                  hintText: 'Search sources...',
-                  prefixIcon: const Icon(Icons.search),
-                  suffixIcon: _searchController.text.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.close),
-                          onPressed: () {
-                            _searchController.clear();
-                            ref.read(sourceSearchProvider.notifier).state = '';
-                          },
-                        )
-                      : null,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: Colors.grey.shade300),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(
-                      color: Theme.of(context).primaryColor,
-                    ),
-                  ),
-                ),
-                onSubmitted: (value) {
-                  ref.read(sourceSearchProvider.notifier).state = value;
-                },
-                onChanged: (value) {
-                  ref.read(sourceSearchProvider.notifier).state = value;
-                  setState(() {}); // Rebuild to show/hide clear button
-                },
-              ),
-            ),
-          // TabBarView
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildSourcesList(_getFilteredSources()),
-                _buildSourcesList(_getFilteredSourcesByType(SourceType.book)),
-                _buildSourcesList(_getFilteredSourcesByType(SourceType.video)),
-                _buildSourcesList(_getFilteredSourcesByType(SourceType.article)),
-                _buildSourcesList(_getFilteredSourcesByType(SourceType.podcast)),
-                _buildSourcesList(_getFilteredSourcesByType(SourceType.website)),
-                _buildSourcesList(_getFilteredSourcesByType(SourceType.other)),
-              ],
-            ),
-          ),
+          _buildSourcesList(_getFilteredSources()),
+          _buildSourcesList(_getFilteredSourcesByType(SourceType.book)),
+          _buildSourcesList(_getFilteredSourcesByType(SourceType.video)),
+          _buildSourcesList(_getFilteredSourcesByType(SourceType.article)),
+          _buildSourcesList(_getFilteredSourcesByType(SourceType.podcast)),
+          _buildSourcesList(_getFilteredSourcesByType(SourceType.website)),
+          _buildSourcesList(_getFilteredSourcesByType(SourceType.other)),
         ],
       ),
     );
@@ -318,7 +210,6 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
     }
 
     return ListView.builder(
-      controller: _scrollController,
       itemCount: sources.length,
       itemBuilder: (context, index) {
         final source = sources[index];
@@ -331,8 +222,6 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
       },
     );
   }
-
-
 
   void _showFilterDialog() {
     final groupsAsync = ref.watch(groupProvider);

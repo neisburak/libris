@@ -15,10 +15,8 @@ class CommonListScreen<T> extends ConsumerStatefulWidget {
   final bool showSearch;
   final Widget Function(T item) itemBuilder;
   final VoidCallback? onAddPressed;
-  final VoidCallback? onSettingsPressed;
   final VoidCallback? onFilterPressed;
   final Widget? searchWidget;
-  final Widget? bottomWidget;
 
   const CommonListScreen({
     super.key,
@@ -33,14 +31,13 @@ class CommonListScreen<T> extends ConsumerStatefulWidget {
     required this.itemBuilder,
     this.showSearch = true,
     this.onAddPressed,
-    this.onSettingsPressed,
     this.onFilterPressed,
     this.searchWidget,
-    this.bottomWidget,
   });
 
   @override
-  ConsumerState<CommonListScreen<T>> createState() => _CommonListScreenState<T>();
+  ConsumerState<CommonListScreen<T>> createState() =>
+      _CommonListScreenState<T>();
 }
 
 class _CommonListScreenState<T> extends ConsumerState<CommonListScreen<T>> {
@@ -64,10 +61,10 @@ class _CommonListScreenState<T> extends ConsumerState<CommonListScreen<T>> {
 
   void _onScroll() {
     if (!widget.showSearch || widget.items.isEmpty) return;
-    
+
     final currentPosition = _scrollController.position.pixels;
     final isScrollingUp = currentPosition < _lastScrollPosition;
-    
+
     // Show search bar when scrolling up
     if (isScrollingUp && currentPosition > 50) {
       if (!_showSearchAtTop) {
@@ -83,7 +80,7 @@ class _CommonListScreenState<T> extends ConsumerState<CommonListScreen<T>> {
         });
       }
     }
-    
+
     _lastScrollPosition = currentPosition;
   }
 
@@ -103,11 +100,6 @@ class _CommonListScreenState<T> extends ConsumerState<CommonListScreen<T>> {
               icon: const Icon(Icons.add),
               onPressed: widget.onAddPressed,
             ),
-          if (widget.onSettingsPressed != null)
-            IconButton(
-              icon: const Icon(Icons.settings),
-              onPressed: widget.onSettingsPressed,
-            ),
         ],
       ),
       body: Column(
@@ -126,7 +118,8 @@ class _CommonListScreenState<T> extends ConsumerState<CommonListScreen<T>> {
                   ),
                 ],
               ),
-              child: widget.searchWidget ??
+              child:
+                  widget.searchWidget ??
                   TextField(
                     controller: _searchController,
                     decoration: InputDecoration(
@@ -138,7 +131,9 @@ class _CommonListScreenState<T> extends ConsumerState<CommonListScreen<T>> {
                               icon: const Icon(Icons.close),
                               onPressed: () {
                                 _searchController.clear();
-                                setState(() {}); // Rebuild to show/hide clear button
+                                setState(
+                                  () {},
+                                ); // Rebuild to show/hide clear button
                               },
                             )
                           : null,
@@ -200,8 +195,6 @@ class _CommonListScreenState<T> extends ConsumerState<CommonListScreen<T>> {
                     },
                   ),
           ),
-          // Bottom widget (e.g., TabBar)
-          if (widget.bottomWidget != null) widget.bottomWidget!,
         ],
       ),
     );
@@ -274,13 +267,13 @@ class SlidableListItem<T> extends StatelessWidget {
 mixin CommonListScreenMixin<T> {
   String get searchQuery;
   set searchQuery(String value);
-  
+
   List<T> get filteredItems;
-  
+
   void onSearchChanged(String query) {
     searchQuery = query;
   }
-  
+
   void clearSearch() {
     searchQuery = '';
   }

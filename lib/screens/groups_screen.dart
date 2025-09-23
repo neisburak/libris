@@ -5,7 +5,6 @@ import '../providers/group_provider.dart';
 import '../widgets/common_list_screen.dart';
 import '../widgets/group_list_item.dart';
 import 'add_group_screen.dart';
-import 'settings_screen.dart';
 import 'sources_screen.dart';
 
 class GroupsScreen extends ConsumerStatefulWidget {
@@ -59,9 +58,7 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen> {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide(
-              color: Theme.of(context).primaryColor,
-            ),
+            borderSide: BorderSide(color: Theme.of(context).primaryColor),
           ),
         ),
         onSubmitted: (value) {
@@ -82,12 +79,6 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen> {
         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => const AddGroupScreen()),
-        );
-      },
-      onSettingsPressed: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const SettingsScreen()),
         );
       },
     );

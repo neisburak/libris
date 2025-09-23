@@ -5,7 +5,6 @@ import '../providers/quotation_provider.dart';
 import '../widgets/common_list_screen.dart';
 import '../widgets/quote_list_item.dart';
 import 'add_quote_screen.dart';
-import 'groups_screen.dart';
 import 'sources_screen.dart';
 
 class QuotesScreen extends ConsumerStatefulWidget {
@@ -15,68 +14,19 @@ class QuotesScreen extends ConsumerStatefulWidget {
   ConsumerState<QuotesScreen> createState() => _QuotesScreenState();
 }
 
-class _QuotesScreenState extends ConsumerState<QuotesScreen> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-  int _currentTabIndex = 0;
-
-  final List<Widget> _tabs = [
-    const QuotesContent(),
-    const GroupsScreen(),
-    const SourcesScreen(),
-  ];
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 3, vsync: this, initialIndex: _currentTabIndex);
-    _tabController.addListener(() {
-      setState(() {
-        _currentTabIndex = _tabController.index;
-      });
-    });
-  }
+class _QuotesScreenState extends ConsumerState<QuotesScreen> {
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void dispose() {
-    _tabController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Library'),
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(
-              icon: Icon(Icons.format_quote),
-              text: 'Quotes',
-            ),
-            Tab(
-              icon: Icon(Icons.folder),
-              text: 'Groups',
-            ),
-            Tab(
-              icon: Icon(Icons.library_books),
-              text: 'Sources',
-            ),
-          ],
-        ),
-      ),
-      body: _tabs[_currentTabIndex],
-    );
-  }
-}
-
-class QuotesContent extends ConsumerWidget {
-  const QuotesContent({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
     final quotesAsync = ref.watch(filteredQuotesProvider);
-
+    
     return CommonListScreen<Quote>(
       title: 'Quotes',
       searchHint: 'Search quotes...',
@@ -87,6 +37,40 @@ class QuotesContent extends ConsumerWidget {
       emptyStateIcon: Icons.format_quote,
       items: quotesAsync,
       showSearch: true,
+      searchWidget: TextField(
+        controller: _searchController,
+        decoration: InputDecoration(
+          contentPadding: const EdgeInsets.all(8),
+          hintText: 'Search quotes...',
+          prefixIcon: const Icon(Icons.search),
+          suffixIcon: _searchController.text.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () {
+                    _searchController.clear();
+                    ref.read(quoteSearchProvider.notifier).state = '';
+                  },
+                )
+              : null,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide(color: Colors.grey.shade300),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide(
+              color: Theme.of(context).primaryColor,
+            ),
+          ),
+        ),
+        onSubmitted: (value) {
+          ref.read(quoteSearchProvider.notifier).state = value;
+        },
+        onChanged: (value) {
+          ref.read(quoteSearchProvider.notifier).state = value;
+          setState(() {}); // Rebuild to show/hide clear button
+        },
+      ),
       itemBuilder: (quote) => QuoteListItem(
         quote: quote,
         onEdit: () => _editQuote(context, quote),
@@ -96,6 +80,13 @@ class QuotesContent extends ConsumerWidget {
         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => const AddQuoteScreen()),
+        );
+      },
+      onFilterPressed: () {
+        // Navigate to Sources
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const SourcesScreen()),
         );
       },
     );
